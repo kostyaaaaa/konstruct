@@ -7,10 +7,18 @@ Claude's context for the whole session, so keep imports focused and short.
 
 @rules/communication.md
 @rules/documentation.md
+@rules/code-style.md
 
 ## Project
 
 @project/overview.md
+@project/structure.md
+
+## Read on demand — not imported
+
+- [apps/](apps/README.md) — one document per app. Deliberately outside the
+  imports above: app-specific documentation is read when working on that app,
+  not carried in context permanently.
 
 ## Adding a document
 

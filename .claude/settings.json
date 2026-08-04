@@ -1,0 +1,28 @@
+{
+  "model": "opus[1m]",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm install --frozen-lockfile)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm format*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm prepare)",
+      "Bash(pnpm -r *)",
+      "Bash(pnpm --filter *)",
+      "Bash(pnpm exec prettier *)",
+      "Bash(pnpm exec eslint *)",
+      "Bash(pnpm exec lint-staged*)",
+      "Bash(pnpm -v)",
+      "Bash(pnpm why *)",
+      "Bash(pnpm list*)",
+      "Bash(node -v)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch --list*)",
+      "Bash(ls *)"
+    ]
+  }
+}

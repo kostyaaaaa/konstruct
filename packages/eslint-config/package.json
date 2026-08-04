@@ -1,0 +1,22 @@
+{
+  "name": "@konstruct/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared ESLint flat configuration for every konstruct app and package.",
+  "exports": {
+    "./base": "./base.js"
+  },
+  "files": [
+    "base.js"
+  ],
+  "dependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.46.4"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
+}

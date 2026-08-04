@@ -1,0 +1,34 @@
+{
+  "name": "konstruct",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": [
+      "eslint --fix --no-warn-ignored --flag v10_config_lookup_from_file",
+      "prettier --write"
+    ],
+    "*.{json,jsonc,md,yml,yaml,css,scss,html}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@konstruct/eslint-config": "workspace:*",
+    "@konstruct/prettier-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.6.2"
+  }
+}
