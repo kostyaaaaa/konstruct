@@ -17,7 +17,28 @@ answer.
 - If a reasonable default clearly exists and the cost of being wrong is low,
   state the assumption plainly instead of blocking.
 
-## 2. Match answer length to the question
+## 2. A numbered request gets a numbered answer
+
+When the request is a numbered list, the reply reports back on **every point, in
+the same order, under the same number**. No exceptions, and no merging two
+points into one paragraph.
+
+This is how the reader checks that nothing was dropped. A reply that covers four
+requests in flowing prose forces them to search for each answer, and a point
+that was silently skipped looks identical to one that was handled.
+
+- Keep the reader's numbering, even when it would be more natural to reorder the
+  work. Do the work in whatever order makes sense, then report in their order.
+- A point that was **not** done still gets its number, and says why — blocked,
+  needs a decision, or deliberately left out.
+- A point that turned into a question gets its number, and asks the question
+  there.
+- Sub-points from the reader (1a, 1b) keep their own structure too.
+
+Rule 3 still applies inside each point: a short question gets a short answer,
+not a paragraph padded out to match the others.
+
+## 3. Match answer length to the question
 
 - **Yes/no or short factual questions** — answer briefly, 2-3 sentences by
   default. Lead with the answer, then the reason. Do not expand unless asked.
@@ -26,7 +47,7 @@ answer.
 
 When it is unclear which case applies, start short and offer to go deeper.
 
-## 3. Write in simple English
+## 4. Write in simple English
 
 The reader's English is around B2 level. Long sentences and rare words slow the
 reply down. Simpler is always better.

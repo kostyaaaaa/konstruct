@@ -1,0 +1,28 @@
+{
+  "name": "dota-bet-analytics",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Watches live Dota 2 pro matches and emails a betting analytics report for each one.",
+  "license": "ISC",
+  "scripts": {
+    "dev": "infisical run --path=/dota-bet-analytics -- nodemon ./src/index.js",
+    "start": "infisical run --path=/dota-bet-analytics -- node ./src/index.js",
+    "stats": "infisical run --path=/dota-bet-analytics -- node ./src/scripts/getAppStats.js",
+    "update": "infisical run --path=/dota-bet-analytics -- node ./src/scripts/updateAllMatches.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@konstruct/logger": "workspace:*",
+    "axios": "^0.27.2",
+    "handlebars": "^4.7.7",
+    "mongoose": "^6.6.5",
+    "node-cron": "^3.0.2",
+    "nodemailer": "^6.7.5"
+  },
+  "devDependencies": {
+    "@konstruct/eslint-config": "workspace:*",
+    "eslint": "^9.39.5",
+    "nodemon": "^2.0.16"
+  }
+}

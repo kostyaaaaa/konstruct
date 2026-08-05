@@ -10,4 +10,8 @@ export const apps = [
     name: 'konstruct-dashboard',
     aliases: ['dashboard'],
   },
+  {
+    name: 'dota-bet-analytics',
+    aliases: ['dota'],
+  },
 ];

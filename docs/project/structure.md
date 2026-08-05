@@ -5,15 +5,19 @@ pnpm workspace. Workspace roots are declared in `pnpm-workspace.yaml`.
 ```
 konstruct/
 ├── apps/                      # every app, one workspace package each
-│   └── konstruct-dashboard/   # the platform shell (Next.js)
+│   ├── konstruct-dashboard/   # the platform shell (Next.js)
+│   └── dota-bet-analytics/    # Dota match report worker (Node, cron)
 ├── packages/                  # shared code, installable into any app
-│   ├── eslint-config/         # @konstruct/eslint-config  → ./base, ./next
+│   ├── eslint-config/         # @konstruct/eslint-config → ./base, ./next, ./node
+│   ├── logger/                # @konstruct/logger → ./server, ./client
 │   └── prettier-config/       # @konstruct/prettier-config
 ├── docs/
 │   ├── index.md               # imports of the always-loaded docs
 │   ├── rules/                 # rules for Claude — always in context
 │   ├── project/               # overview, structure — always in context
 │   └── apps/                  # one file per app — read on demand
+├── pnpm-workspace.yaml        # workspace roots + reviewed install-script exceptions
+├── .infisical.json            # links the workspace to the Konstruct project (no secrets)
 ├── scripts/                   # repo-level tooling run through root scripts
 │   ├── apps.config.js         # app names + dev aliases
 │   └── dev.js                 # `pnpm dev <app>[, <app>...]`
@@ -43,6 +47,8 @@ One workspace package per app. Each owns its `package.json` and
 
 - `konstruct-dashboard` — the shell listing every app.
   [Docs](../apps/konstruct-dashboard.md).
+- `dota-bet-analytics` — Node worker, no HTTP server.
+  [Docs](../apps/dota-bet-analytics.md).
 
 ## scripts/
 

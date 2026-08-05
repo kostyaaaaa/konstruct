@@ -64,6 +64,17 @@ export default { ...base, printWidth: 120 }
 
 An override that turns out to be right for everything belongs in the shared
 package instead. Framework rule sets become new exports of
-`@konstruct/eslint-config`, not copies inside an app. `./next` already exists
-(Next.js rules, hooks rules, browser globals); add `./react`, `./node` and the
-rest the same way.
+`@konstruct/eslint-config`, not copies inside an app. Three exist today:
+
+| Export   | For                                                        |
+| -------- | ---------------------------------------------------------- |
+| `./base` | Any package. JavaScript + TypeScript, framework-agnostic.  |
+| `./next` | Next.js apps. Next rules, rules of hooks, browser globals. |
+| `./node` | Node services and workers. CommonJS `.js`, Node globals.   |
+
+Add `./react` and the rest the same way.
+
+Every app in this repo is ESM (`"type": "module"`), so `eslint.config.js` works
+everywhere. If an app ever has to be CommonJS, its config file must be named
+`eslint.config.mjs`, because a CommonJS package cannot load a `.js` config
+written with `import`.

@@ -9,6 +9,7 @@ Claude's context for the whole session, so keep imports focused and short.
 @rules/documentation.md
 @rules/code-style.md
 @rules/frontend.md
+@rules/backend.md
 
 ## Project
 
@@ -22,6 +23,9 @@ Claude's context for the whole session, so keep imports focused and short.
   an app: several files have to be updated by hand, and missing one fails
   quietly. Deliberately outside the imports above — app-specific documentation
   is read when working on that app, not carried in context permanently.
+- [rules/nestjs.md](rules/nestjs.md) — how to structure a NestJS app, and when
+  to choose it over Express. Read it when working on a NestJS app. It stays out
+  of the imports because no app uses NestJS yet; move it up the moment one does.
 
 ## Adding a document
 

@@ -5,9 +5,9 @@
   "type": "module",
   "description": "Platform shell — lists every konstruct app and links into it.",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "infisical run --path=/konstruct-dashboard -- next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "infisical run --path=/konstruct-dashboard -- next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

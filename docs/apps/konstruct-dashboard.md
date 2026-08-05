@@ -38,11 +38,43 @@ pnpm --filter konstruct-dashboard lint
 pnpm --filter konstruct-dashboard typecheck
 ```
 
+`dev` and `start` go through `infisical run --path=/konstruct-dashboard`, so
+they need the Infisical CLI and a login. `build` does not — it has no secrets to
+read, and keeping it plain means CI and Vercel can build without Infisical
+access.
+
+## Configuration
+
+Secrets live in the `Konstruct` Infisical project, in the
+`/konstruct-dashboard` folder.
+
+| Variable          | What it is                                    |
+| ----------------- | --------------------------------------------- |
+| `ENV`             | `dev` or `prod` — tags every log event        |
+| `PORT`            | `3000`                                        |
+| `AXIOM_DATASET`   | `konstruct-dashboard`                         |
+| `AXIOM_TOKEN`     | Ingest token                                  |
+| `AXIOM_EDGE`      | Regional ingest host                          |
+| `NEXT_PUBLIC_ENV` | Same as `ENV`, but readable from browser code |
+
+**The port is a variable, not a flag.** Next.js reads `PORT` itself, so the
+scripts pass no `--port`. Changing where the dashboard runs is a change in
+Infisical, not in `package.json`.
+
+`NEXT_PUBLIC_ENV` exists because the browser cannot see `ENV` — only what the
+bundler inlined. It is what tags client-side log events with the environment.
+Anything prefixed `NEXT_PUBLIC_` is shipped to the browser and is therefore
+public; never give a secret that prefix.
+
 ## Deploy
 
 Vercel, with **Root Directory** set to `apps/konstruct-dashboard`. Vercel reads
 the workspace from the repo root lockfile, so no extra install command is
 needed. Other apps become their own Vercel projects pointing at their own root.
+
+Vercel does not run `infisical run`. The variables above have to exist in the
+Vercel project too, either entered there or synced by Infisical's Vercel
+integration.
 
 ## Notes
 

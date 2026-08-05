@@ -1,7 +1,11 @@
 # Frontend rules
 
-Applies to every frontend app in `apps/`. Backend rules will get their own
-document when the first backend exists.
+Applies to every frontend app in `apps/`. Node apps that are not frontends
+follow [backend.md](backend.md) instead.
+
+Logging is shared with the backend: events go to Axiom through
+`@konstruct/logger`, one dataset per app. See
+[backend.md](backend.md#4-logging), and rule 7 below for the browser side.
 
 ## 1. One folder per component
 
@@ -109,3 +113,38 @@ shape built from divs, for instance — stays a component instead.
   explicit type. It is not fetched, and it is not duplicated in components.
 - Types shared by several components live next to the data or in `src/types/`;
   types used by one component live in that component's `types.ts`.
+
+## 7. Logging from the browser
+
+A frontend has two places that log, and they are not the same.
+
+- **Server components, route handlers, server actions** — use
+  `@konstruct/logger/server`, exactly like a backend.
+- **Client components** — use `@konstruct/logger/client`.
+
+```tsx
+'use client';
+import { createClientLogger } from '@konstruct/logger/client';
+
+const logger = createClientLogger();
+logger.error('search failed', { query });
+```
+
+**The client logger takes no token, and that is the point.** An Axiom ingest
+token shipped to the browser is readable by anyone who opens the network tab,
+and it lets them write into your dataset. So the browser posts its events to a
+route in your own app, and that route — running on the server, where the token
+lives — forwards them.
+
+That means a client logger needs the route to exist. Add one at `/api/logs`
+(the default `url`) that reads the batch from the request and passes it to a
+server logger. Without it the events go to the console and the posts fail.
+
+The browser cannot read `ENV` either — it only sees what the bundler inlined. To
+tag browser events with the environment, publish it as `NEXT_PUBLIC_ENV`, which
+the client logger picks up. Otherwise pass `env` to `createClientLogger`
+explicitly. Without either, browser events are tagged `unknown`.
+
+Log from the browser sparingly. It is for things the server cannot see — a
+render error, a failed fetch, an interaction that broke. Not page views, and
+never anything a user typed.

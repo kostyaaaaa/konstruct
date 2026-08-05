@@ -2,7 +2,13 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-# sharp is Next.js's image optimizer and needs its install script to compile
-# native binaries. Everything else stays blocked by default.
+# Install scripts are blocked by default. Every entry here is a deliberate
+# exception, and each one is reviewed before it is added.
 allowBuilds:
+  # Prints an anti-war message on install, and only when the machine's timezone
+  # is in Russia. No network, no writes — it is a no-op everywhere else. Comes
+  # in transitively under dota2 -> deferred -> d.
+  es5-ext: true
+  # Next.js's image optimizer. Needs its install script to compile native
+  # binaries, so blocking it breaks the dashboard build.
   sharp: true

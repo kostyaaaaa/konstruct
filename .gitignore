@@ -5,6 +5,8 @@ coverage/
 .next/
 .turbo/
 
+# No app writes log files — logs go to Axiom. This catches tool output only,
+# like pnpm-debug.log.
 *.log
 .DS_Store
 
@@ -14,6 +16,7 @@ next-env.d.ts
 
 .claude/settings.local.json
 
+# Secrets come from Infisical and no app reads a .env. These stay as a net, so
+# a file created by hand can never be committed by accident.
 .env
 .env.*
-!.env.example

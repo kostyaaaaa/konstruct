@@ -1,0 +1,27 @@
+{
+  "name": "@konstruct/logger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared structured logger. Sends events to Axiom, one dataset per app.",
+  "exports": {
+    "./server": {
+      "types": "./server.d.ts",
+      "default": "./server.js"
+    },
+    "./client": {
+      "types": "./client.d.ts",
+      "default": "./client.js"
+    }
+  },
+  "files": [
+    "server.js",
+    "server.d.ts",
+    "client.js",
+    "client.d.ts"
+  ],
+  "dependencies": {
+    "@axiomhq/js": "^2.0.0",
+    "@axiomhq/logging": "^0.4.0"
+  }
+}

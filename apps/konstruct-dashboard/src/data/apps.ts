@@ -28,8 +28,8 @@ export const apps: PlatformApp[] = [
   {
     id: 'dota',
     name: 'dota-bet-analytics',
-    description: 'Analyzes 3D API data for betting insights.',
+    description: 'Watches live Dota 2 pro matches and emails a betting report for each one.',
     href: '#',
-    icon: 'chart',
+    icon: 'dota',
   },
 ];

@@ -1,5 +1,11 @@
 {
-  "conventionalCommits.scopes": ["root", "apps", "packages", "konstruct-dashboard"],
+  "conventionalCommits.scopes": [
+    "root",
+    "apps",
+    "packages",
+    "konstruct-dashboard",
+    "dota-bet-analytics"
+  ],
 
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -28,6 +34,16 @@
     "tseslint",
     "Turborepo",
     "dota",
+    "infisical",
+    "axiom",
+    "axiomhq",
+    "mongoose",
+    "nodemailer",
+    "twilio",
+    "nestjs",
+    "pino",
+    "terminus",
+    "supertest",
     "esbenp",
     "dbaeumer",
     "vivaxy",

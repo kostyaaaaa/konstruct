@@ -6,11 +6,13 @@
   "description": "Shared ESLint flat configuration for every konstruct app and package.",
   "exports": {
     "./base": "./base.js",
-    "./next": "./next.js"
+    "./next": "./next.js",
+    "./node": "./node.js"
   },
   "files": [
     "base.js",
-    "next.js"
+    "next.js",
+    "node.js"
   ],
   "dependencies": {
     "@eslint/js": "^9.39.1",
