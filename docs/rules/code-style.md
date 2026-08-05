@@ -6,6 +6,7 @@ Manage every app and package through pnpm. Never use npm or yarn, and never edit
 `node_modules` or `pnpm-lock.yaml` by hand.
 
 ```bash
+pnpm dev <app>[, <app>...]                    # run apps in dev, by name or alias
 pnpm install                                  # whole workspace
 pnpm --filter <app> add <dep>                 # dependency for one workspace package
 pnpm --filter <app> add @konstruct/<pkg> --workspace   # shared package
@@ -62,5 +63,7 @@ export default { ...base, printWidth: 120 }
 ```
 
 An override that turns out to be right for everything belongs in the shared
-package instead. Framework rule sets (React, Next, Node) become new exports of
-`@konstruct/eslint-config`, not copies inside an app.
+package instead. Framework rule sets become new exports of
+`@konstruct/eslint-config`, not copies inside an app. `./next` already exists
+(Next.js rules, hooks rules, browser globals); add `./react`, `./node` and the
+rest the same way.

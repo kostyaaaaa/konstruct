@@ -21,14 +21,34 @@ Update docs when a change touches:
 
 Pure internal refactors with no visible effect on the above need no docs change.
 
-## 3. Where it goes
+## 3. What not to document
+
+Documents describe the current state, not the path to it. Git already records
+the path.
+
+Do not write:
+
+- that something changed, or what it used to be
+- why a bug was fixed, or which fix was applied
+- a deviation from a design, a mockup, or an earlier plan
+- a step-by-step account of work that was done
+
+Rationale belongs in a document only when it is **not recoverable from the code**
+and someone would otherwise undo it. "This value is deliberately opaque so
+routing can change later" earns its place. "We changed this from centred to
+left-aligned" does not — it is a commit message.
+
+When in doubt, ask whether the sentence will still be worth reading in six
+months by someone who never saw the change.
+
+## 4. Where it goes
 
 Extend the existing document that covers the topic. Create a new file only when
 no current document fits, and then register it in `docs/index.md` per the rules
 there. Keep documents short and current — delete text that no longer applies
 rather than layering caveats on top of it.
 
-## 4. Say what changed
+## 5. Say what changed
 
 When a task includes a docs update, name the updated files in the summary. If a
 code change deliberately needs no docs update, say so in one line.

@@ -1,3 +1,8 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# sharp is Next.js's image optimizer and needs its install script to compile
+# native binaries. Everything else stays blocked by default.
+allowBuilds:
+  sharp: true

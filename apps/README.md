@@ -1,13 +1,12 @@
 # apps
 
-Every konstruct app lives here as its own pnpm workspace package. Empty for now.
+Every konstruct app lives here as its own pnpm workspace package.
 
-An app is expected to:
+- `konstruct-dashboard` — the platform shell.
+  [Docs](../docs/apps/konstruct-dashboard.md).
 
-- own its `package.json`, with shared code pulled in as `"@konstruct/<pkg>": "workspace:*"`
-- own an `eslint.config.js` extending `@konstruct/eslint-config/base`
-- inherit Prettier from the root config, or extend `@konstruct/prettier-config`
-  in a local `prettier.config.js`
-- have a description in `docs/apps/<app-name>.md`
+Adding one is a checklist, not just a folder — `pnpm dev`, the dashboard's app
+list and the docs all have to be told it exists. Follow
+[docs/apps/README.md](../docs/apps/README.md#adding-a-new-app).
 
-See [docs/project/structure.md](../docs/project/structure.md).
+Layout and conventions: [docs/project/structure.md](../docs/project/structure.md).

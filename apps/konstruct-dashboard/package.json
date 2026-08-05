@@ -1,0 +1,30 @@
+{
+  "name": "konstruct-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Platform shell — lists every konstruct app and links into it.",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.2.12",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@konstruct/eslint-config": "workspace:*",
+    "@svgr/webpack": "^8.1.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "eslint": "^9.39.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}

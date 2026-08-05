@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Surfaces */
+  --color-canvas: oklch(98% 0.008 150);
+  --color-surface: oklch(99% 0.004 150);
+  --color-card: oklch(99.5% 0.003 150);
+  --color-field: oklch(95% 0.01 150);
+
+  /* Lines */
+  --color-line: oklch(91% 0.012 150);
+  --color-line-strong: oklch(70% 0.08 152);
+
+  /* Text */
+  --color-ink: oklch(22% 0.01 150);
+  --color-muted: oklch(48% 0.012 150);
+
+  /* Brand */
+  --color-brand: oklch(52% 0.1 152);
+  --color-brand-tint: oklch(94% 0.045 152);
+  --color-brand-ink: oklch(38% 0.08 152);
+  --color-brand-mark: oklch(98% 0.02 152);
+  --color-brand-mark-dim: oklch(85% 0.05 152);
+}
+
+@layer base {
+  ::selection {
+    background-color: oklch(90% 0.06 152);
+  }
+
+  a {
+    color: oklch(45% 0.1 152);
+  }
+
+  a:hover {
+    color: oklch(38% 0.11 152);
+  }
+}

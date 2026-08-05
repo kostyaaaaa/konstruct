@@ -12,10 +12,15 @@ installed into any app that needs it.
 ## Getting started
 
 ```bash
-pnpm install     # installs the workspace and the git hooks
-pnpm format      # Prettier over the repo
-pnpm lint        # ESLint over the repo
+pnpm install            # installs the workspace and the git hooks
+pnpm dev dashboard      # run an app in dev, by name or alias
+pnpm format             # Prettier over the repo
+pnpm lint               # ESLint over the repo
 ```
+
+`pnpm dev` takes one or more apps, separated by commas or spaces, and runs them
+in parallel — `pnpm dev dashboard, dota`. Each app pins its own port. Run it
+with no arguments to list what is available.
 
 ## Layout
 
@@ -29,8 +34,16 @@ Full breakdown: [docs/project/structure.md](docs/project/structure.md).
 
 ## Apps
 
-None yet. Each app will get a section here and a document in
-[docs/apps/](docs/apps/README.md) describing what it does and how to run it.
+| App                   | What it is                                    | Docs                                     |
+| --------------------- | --------------------------------------------- | ---------------------------------------- |
+| `konstruct-dashboard` | The platform shell — lists and links to apps. | [docs](docs/apps/konstruct-dashboard.md) |
+
+```bash
+pnpm dev dashboard     # http://localhost:3000
+```
+
+Apps are separate deployments with their own frontend and backend; the dashboard
+links to them by URL. See [app routing](docs/project/overview.md#app-routing).
 
 ## Conventions
 

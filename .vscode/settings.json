@@ -1,5 +1,5 @@
 {
-  "conventionalCommits.scopes": ["root", "apps", "packages"],
+  "conventionalCommits.scopes": ["root", "apps", "packages", "konstruct-dashboard"],
 
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -20,6 +20,19 @@
   "prettier.requireConfig": true,
   "eslint.useFlatConfig": true,
   "eslint.workingDirectories": [{ "mode": "auto" }],
+  "cSpell.words": [
+    "konstruct",
+    "oklch",
+    "pnpm",
+    "husky",
+    "tseslint",
+    "Turborepo",
+    "dota",
+    "esbenp",
+    "dbaeumer",
+    "vivaxy",
+    "eamodio"
+  ],
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true
 }

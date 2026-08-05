@@ -5,14 +5,18 @@ pnpm workspace. Workspace roots are declared in `pnpm-workspace.yaml`.
 ```
 konstruct/
 ├── apps/                      # every app, one workspace package each
+│   └── konstruct-dashboard/   # the platform shell (Next.js)
 ├── packages/                  # shared code, installable into any app
-│   ├── eslint-config/         # @konstruct/eslint-config  → ./base
+│   ├── eslint-config/         # @konstruct/eslint-config  → ./base, ./next
 │   └── prettier-config/       # @konstruct/prettier-config
 ├── docs/
 │   ├── index.md               # imports of the always-loaded docs
 │   ├── rules/                 # rules for Claude — always in context
 │   ├── project/               # overview, structure — always in context
 │   └── apps/                  # one file per app — read on demand
+├── scripts/                   # repo-level tooling run through root scripts
+│   ├── apps.config.js         # app names + dev aliases
+│   └── dev.js                 # `pnpm dev <app>[, <app>...]`
 ├── .claude/
 │   └── settings.json          # Claude Code model + auto-allowed commands
 ├── .husky/
@@ -36,6 +40,15 @@ open question below.
 
 One workspace package per app. Each owns its `package.json` and
 `eslint.config.js`; see [apps/README.md](../../apps/README.md).
+
+- `konstruct-dashboard` — the shell listing every app.
+  [Docs](../apps/konstruct-dashboard.md).
+
+## scripts/
+
+Tooling that belongs to the repo rather than to one app, run through a root
+script. `dev.js` resolves app names and aliases from `apps.config.js` and hands
+them to pnpm; registering a new app there is what makes `pnpm dev <app>` work.
 
 ## docs/apps/
 

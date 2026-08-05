@@ -25,3 +25,18 @@ answer.
   answer at normal length and depth.
 
 When it is unclear which case applies, start short and offer to go deeper.
+
+## 3. Write in simple English
+
+The reader's English is around B2 level. Long sentences and rare words slow the
+reply down. Simpler is always better.
+
+- Use common words. "use", not "utilise". "start", not "commence". "about",
+  not "with respect to".
+- One idea per sentence. Keep sentences short.
+- Break a long answer into bullets or short paragraphs.
+- No idioms, no wordplay, no clever phrasing.
+- Explain a technical term the first time it is used, unless it is the name of
+  a tool or a library.
+
+This applies to replies and to everything written in `docs/`.
