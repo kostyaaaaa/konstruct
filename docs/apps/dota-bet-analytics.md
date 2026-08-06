@@ -107,8 +107,8 @@ emailing reports about them.
 | `DB_NAME`          | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
 | `STEAM_API_KEY`    | Steam Web API key, server-side only                            |
 | `OPENDOTA_API_URL` | Defaults to the public API; no key                             |
-| `SMTP_EMAIL`       | Gmail account the report is sent from                          |
-| `SMTP_PASSWORD`    | App password for that account                                  |
+| `RESEND_API_KEY`   | Resend API key, for sending the report                         |
+| `REPORT_FROM`      | Sender, as `Name <address>`                                    |
 | `EMAIL`            | Address the report is sent to                                  |
 | `AXIOM_DATASET`    | `dota-bet-analytics`                                           |
 | `AXIOM_TOKEN`      | Ingest token                                                   |
@@ -254,6 +254,34 @@ template being rewritten.
 template into `dist` at build time. Without it the report would fail on the
 first match rather than at build.
 
+### The report goes over HTTP, because Railway blocks SMTP
+
+Railway allows outbound SMTP on the **Pro plan and above only** — on Free,
+Trial and Hobby, ports 25, 465, 587 and 2525 are firewalled. The packets are
+dropped rather than refused, so a mail library does not fail: it waits for its
+connection timeout and then reports a timeout that looks like a broken mail
+server.
+
+So the report is sent through [Resend](https://resend.com)'s HTTP API, which is
+ordinary traffic on 443. No SMTP library is involved.
+
+Until a domain is verified with Resend, two limits apply: `REPORT_FROM` has to
+be `onboarding@resend.dev`, and mail is only delivered to the address the
+Resend account was registered with. Verifying a domain lifts both and is a
+change to `REPORT_FROM` alone.
+
+### Mail is sent after the poll, not inside it
+
+`DiscoveryService.poll` runs on a 10-second interval and guards against
+overlapping itself with a flag. Anything awaited while that flag is held stops
+discovery — and a mail provider that hangs takes as long as its timeout to
+fail, which is far longer than the interval.
+
+So `runPoll` returns the predictions it made, and the emails are sent after the
+flag is released. A slow provider then delays only the email. `ReportService.send`
+reports its own failures and never throws, so nothing escapes into an unhandled
+rejection.
+
 ### Current state
 
 Working:
@@ -302,8 +330,10 @@ Working:
   against three real finished matches, including one where the same team won
   from the other side. Pausable like discovery.
 
-- **The email report is back.** Each new prediction is emailed as well as
-  stored, using the original Handlebars template.
+- **The email report is wired, and unverified in production.** Each new
+  prediction is emailed as well as stored, using the original Handlebars
+  template over Resend's HTTP API. No report has been delivered from Railway
+  yet.
 
 Everything planned for the backend is built.
 

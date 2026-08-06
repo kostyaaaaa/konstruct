@@ -4,8 +4,9 @@ import path from 'node:path';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Handlebars from 'handlebars';
-import { createTransport, type Transporter } from 'nodemailer';
 
+import { HttpObserver } from '../common/http-observer.js';
+import { fetchJson } from '../common/http.js';
 import type { Env } from '../config/env.schema.js';
 import { AppLogger } from '../logger/logger.service.js';
 import type { Prediction, PredictionPlayer } from '../predictions/prediction.schema.js';
@@ -47,26 +48,25 @@ function toTemplateHero(player: PredictionPlayer): TemplateHero {
   };
 }
 
+/** Only the field we use. */
+interface ResendResponse {
+  id?: string;
+}
+
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+
 @Injectable()
 export class ReportService implements OnModuleInit {
-  private transporter: Transporter | null = null;
   private template: HandlebarsTemplateDelegate<TemplateModel> | null = null;
 
   constructor(
     private readonly config: ConfigService<Env, true>,
+    private readonly http: HttpObserver,
     private readonly logger: AppLogger,
   ) {}
 
   async onModuleInit() {
     registerReportHelpers();
-
-    this.transporter = createTransport({
-      service: 'Gmail',
-      auth: {
-        user: this.config.get('SMTP_EMAIL', { infer: true }),
-        pass: this.config.get('SMTP_PASSWORD', { infer: true }),
-      },
-    });
 
     /* Compiled once at startup rather than per send. Reading it here also
        means a missing or broken template fails on boot, not on the first
@@ -94,33 +94,41 @@ export class ReportService implements OnModuleInit {
   }
 
   /**
-   * Emails one prediction.
+   * Emails one prediction, through Resend's HTTP API.
    *
-   * Returns whether it was sent. A failure is logged and reported, never
-   * thrown: the prediction is already stored and visible in the console, and
-   * losing the archive because a mail server was down would be the worse
-   * outcome.
+   * **Not SMTP, and it cannot be.** Railway allows outbound SMTP on Pro and
+   * above only; on Hobby the ports are firewalled, so a mail server is simply
+   * unreachable no matter how the credentials are set. An HTTPS API is the
+   * supported way out, and it is ordinary traffic on 443.
+   *
+   * Returns whether it was sent. A failure is logged, never thrown: the
+   * prediction is already stored and visible in the console, and losing the
+   * archive because a mail provider was down would be the worse outcome.
    */
   async send(prediction: Prediction): Promise<boolean> {
-    if (!this.transporter) {
-      return false;
-    }
-
     try {
-      const html = this.render(prediction);
-      const from = this.config.get('SMTP_EMAIL', { infer: true });
-
-      const message = await this.transporter.sendMail({
-        from: `dota-bet-analytics <${from}>`,
-        to: this.config.get('EMAIL', { infer: true }),
-        subject: `${prediction.radiantTeamName ?? 'Radiant'} vs ${prediction.direTeamName ?? 'Dire'}`,
-        html,
+      const response = await fetchJson<ResendResponse>(RESEND_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.config.get('RESEND_API_KEY', { infer: true })}`,
+          /* One prediction per match, so the match id is the natural key.
+             Without it a retried request — the first may have been carried
+             out before it timed out — sends the report twice. */
+          'idempotency-key': `prediction-${prediction.matchId}`,
+        },
+        body: {
+          from: this.config.get('REPORT_FROM', { infer: true }),
+          to: this.config.get('EMAIL', { infer: true }),
+          subject: `${prediction.radiantTeamName ?? 'Radiant'} vs ${prediction.direTeamName ?? 'Dire'}`,
+          html: this.render(prediction),
+        },
+        observer: this.http.for('resend'),
       });
 
       this.logger.log('report sent', {
         context: 'Report',
         matchId: prediction.matchId,
-        messageId: message.messageId,
+        messageId: response.id,
       });
       return true;
     } catch (error) {

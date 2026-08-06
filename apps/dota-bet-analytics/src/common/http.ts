@@ -21,6 +21,11 @@ export interface FetchJsonOptions {
   /** Extra attempts after the first. Default 3. */
   retries?: number;
   observer?: FetchObserver;
+  /** Default `GET`. */
+  method?: string;
+  /** Serialised as JSON, with the matching content type. */
+  body?: unknown;
+  headers?: Record<string, string>;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,9 +44,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * stays a plain function with no dependency on Nest's container. Without it a
  * rate-limit storm would be completely silent — the caller only ever sees the
  * final result.
+ *
+ * **A retried write can arrive twice.** A request that times out may still
+ * have been carried out by the other side, so anything not a `GET` should
+ * carry whatever idempotency key its API offers.
  */
 export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}): Promise<T> {
-  const { timeoutMs = 10_000, retries = 3, observer } = options;
+  const { timeoutMs = 10_000, retries = 3, observer, method = 'GET', body, headers } = options;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -57,7 +66,12 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
     }
 
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      const response = await fetch(url, {
+        method,
+        headers: body === undefined ? headers : { 'content-type': 'application/json', ...headers },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
 
       if (response.status === 429 || response.status >= 500) {
         lastError = new Error(`HTTP ${response.status} from ${url}`);

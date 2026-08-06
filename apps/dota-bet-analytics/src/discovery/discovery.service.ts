@@ -8,6 +8,7 @@ import type { Env } from '../config/env.schema.js';
 import { LeaguesService } from '../leagues/leagues.service.js';
 import { AppLogger } from '../logger/logger.service.js';
 import { LiveMatchesService, type ObservedMatch } from '../matches/live-matches.service.js';
+import type { Prediction } from '../predictions/prediction.schema.js';
 import { PredictionsService } from '../predictions/predictions.service.js';
 import { ReportService } from '../report/report.service.js';
 import { SnapshotsService } from '../snapshots/snapshots.service.js';
@@ -86,8 +87,10 @@ export class DiscoveryService {
     this.polling = true;
     this.lastPollAt = new Date();
 
+    let toReport: Prediction[] = [];
+
     try {
-      await this.runPoll();
+      toReport = await this.runPoll();
       this.lastSuccessAt = new Date();
       this.lastError = null;
     } catch (error) {
@@ -99,9 +102,25 @@ export class DiscoveryService {
     } finally {
       this.polling = false;
     }
+
+    /**
+     * Mail is sent **after** the overlap guard is released, deliberately.
+     *
+     * A mail server that hangs takes as long as its timeout to fail, which is
+     * far longer than the 10s interval — awaited inside the guard, one slow
+     * send stops discovery for every tick until it gives up, and the feed is
+     * gone by then. Out here it delays only the email.
+     *
+     * `send` reports its own failures and never throws, so nothing can escape
+     * into an unhandled rejection.
+     */
+    for (const prediction of toReport) {
+      await this.report.send(prediction);
+    }
   }
 
-  private async runPoll(): Promise<void> {
+  /** Returns the predictions made this poll, for the caller to email. */
+  private async runPoll(): Promise<Prediction[]> {
     const key = this.config.get('STEAM_API_KEY', { infer: true });
     const payload = await fetchJson<GetLiveLeagueGamesResponse>(
       `https://api.steampowered.com/IDOTA2Match_570/GetLiveLeagueGames/v1/?key=${key}`,
@@ -148,7 +167,7 @@ export class DiscoveryService {
       });
     }
 
-    await this.predictNewMatches(trackedGames, observed);
+    const predicted = await this.predictNewMatches(trackedGames, observed);
 
     for (const matchId of ended) {
       this.logger.log('match ended', { context: 'Discovery', matchId });
@@ -164,6 +183,8 @@ export class DiscoveryService {
       ended: ended.length,
       snapshots: this.lastSnapshotsWritten,
     });
+
+    return predicted;
   }
 
   /**
@@ -175,11 +196,17 @@ export class DiscoveryService {
    *
    * A failure here must not fail the poll: the registry and the archive have
    * already been written, and those matter more than a prediction.
+   *
+   * Returns what it scored rather than emailing it. The console shows every
+   * prediction the moment it is stored; the email is the push copy, and it is
+   * sent by the caller once the poll is out of the way.
    */
   private async predictNewMatches(
     games: SteamLiveGame[],
     observed: ObservedMatch[],
-  ): Promise<void> {
+  ): Promise<Prediction[]> {
+    const predicted: Prediction[] = [];
+
     for (const game of games) {
       const match = observed.find((candidate) => candidate.matchId === game.match_id);
       if (!match) {
@@ -197,11 +224,8 @@ export class DiscoveryService {
           direTeamName: match.direTeamName,
         });
 
-        /* The console shows every prediction; the email is the push copy.
-           A mail failure is reported by the service and does not stop the
-           poll — the prediction is already stored. */
         if (prediction) {
-          await this.report.send(prediction);
+          predicted.push(prediction);
         }
       } catch (error) {
         this.logger.error('prediction failed', error instanceof Error ? error : undefined, {
@@ -210,6 +234,8 @@ export class DiscoveryService {
         });
       }
     }
+
+    return predicted;
   }
 
   /** Keeps a game only if it is a tracked league and carries a usable id. */

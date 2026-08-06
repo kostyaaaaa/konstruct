@@ -26,7 +26,6 @@
     "axios": "^1.7.9",
     "handlebars": "^4.7.7",
     "mongoose": "^9.9.1",
-    "nodemailer": "^6.7.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^4.1.5"
@@ -35,7 +34,6 @@
     "@konstruct/eslint-config": "workspace:*",
     "@konstruct/tsconfig": "workspace:*",
     "@types/node": "^26.1.2",
-    "@types/nodemailer": "^6.4.17",
     "eslint": "^9.39.5",
     "typescript": "^7.0.2"
   }
