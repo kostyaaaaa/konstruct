@@ -8,7 +8,9 @@ import { z } from 'zod';
  */
 export const envSchema = z.object({
   ENV: z.enum(['dev', 'staging', 'prod']),
-  PORT: z.coerce.number().int().positive().default(5001),
+  /* Railway and most container hosts assign the port themselves, so this
+     default only applies to a local run with nothing configured. */
+  PORT: z.coerce.number().int().positive().default(4001),
 
   /* Mongo. Assembled into a connection string in MongoConfig. */
   DB_HOST: z.string().min(1),

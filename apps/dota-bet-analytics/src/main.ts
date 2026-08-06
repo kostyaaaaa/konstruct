@@ -15,7 +15,7 @@ async function bootstrap() {
      workers and the logger a chance to finish rather than being killed. */
   app.enableShutdownHooks();
 
-  const port = Number(process.env.PORT ?? 5001);
+  const port = Number(process.env.PORT ?? 4001);
   await app.listen(port);
 
   logger.log('api listening', { context: 'Bootstrap', port, env: process.env.ENV });
