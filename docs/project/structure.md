@@ -65,14 +65,16 @@ With no arguments it runs every app.
 
 ## docs/apps/
 
-Every app gets `docs/apps/<app-name>.md` describing what it is, what it owns, and
-how it is run. These are deliberately **not** imported by `docs/index.md` — only
-the rules and project docs stay permanently in context. App docs are read when
-working on that app.
+Every app gets two files: `docs/apps/<app-name>.md` describing what it is, what
+it owns and how it is run, and `docs/apps/<app-name>-todo.md` listing what is
+planned for it. These are deliberately **not** imported by `docs/index.md` —
+only the rules and project docs stay permanently in context. App docs are read
+when working on that app.
 
 ## Open question
 
 The original intent was one repository per app. Apps currently live in `apps/`
 inside this monorepo instead. If they do move out to separate repositories,
 shared packages have to be published to a registry rather than linked with
-`workspace:*`. Decide before the second app exists.
+`workspace:*`. Three apps now depend on `workspace:*`, so the longer this runs
+the more there is to unpick.

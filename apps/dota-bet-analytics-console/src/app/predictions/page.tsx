@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { Hint } from '@/components/Hint';
 import { Panel } from '@/components/Panel';
 import { Stat } from '@/components/Stat';
 import { api } from '@/lib/api';
@@ -46,6 +47,7 @@ export default async function PredictionsPage({
               <Stat
                 label="Accuracy"
                 value={accuracy.accuracyPercent === null ? '—' : `${accuracy.accuracyPercent}%`}
+                title="Share of settled predictions that named the side which went on to win."
                 tone={
                   accuracy.accuracyPercent === null
                     ? 'neutral'
@@ -54,9 +56,23 @@ export default async function PredictionsPage({
                       : 'bad'
                 }
               />
-              <Stat label="Settled" value={accuracy.settled} />
-              <Stat label="Correct" value={accuracy.correct} tone="ok" />
-              <Stat label="Wrong" value={accuracy.incorrect} tone="bad" />
+              <Stat
+                label="Settled"
+                value={accuracy.settled}
+                title="Predictions whose match has finished and whose player stats were complete. Everything else is excluded rather than counted as wrong."
+              />
+              <Stat
+                label="Correct"
+                value={accuracy.correct}
+                title="Settled predictions where the favoured side won."
+                tone="ok"
+              />
+              <Stat
+                label="Wrong"
+                value={accuracy.incorrect}
+                title="Settled predictions where the other side won."
+                tone="bad"
+              />
             </div>
             <p className="mt-4 text-xs text-faint">
               Counts only predictions whose match has finished and whose player stats were complete.
@@ -82,19 +98,36 @@ export default async function PredictionsPage({
                     <div className="truncate text-sm">
                       <span
                         className={
-                          prediction.favoured === 'radiant' ? 'text-radiant' : 'text-muted'
+                          prediction.favoured === 'radiant'
+                            ? 'font-medium text-accent'
+                            : 'text-muted'
+                        }
+                        title={
+                          prediction.favoured === 'radiant' ? 'Favoured — higher score' : undefined
                         }
                       >
                         {prediction.radiantTeamName ?? 'Radiant'}
                       </span>
                       <span className="px-2 text-faint">vs</span>
-                      <span className={prediction.favoured === 'dire' ? 'text-dire' : 'text-muted'}>
+                      <span
+                        className={
+                          prediction.favoured === 'dire' ? 'font-medium text-accent' : 'text-muted'
+                        }
+                        title={
+                          prediction.favoured === 'dire' ? 'Favoured — higher score' : undefined
+                        }
+                      >
                         {prediction.direTeamName ?? 'Dire'}
                       </span>
                     </div>
                     <div className="mt-0.5 mono text-xs text-faint">
-                      {prediction.radiantScore} – {prediction.direScore} ·{' '}
-                      {prediction.marginPercent}% margin
+                      <Hint text="Radiant score – Dire score. Each is the sum of that team's five players' win rates on their chosen heroes (weighted 80%) plus their familiarity with those heroes (weighted 20%). Higher is stronger, and the numbers only mean anything against each other.">
+                        {prediction.radiantScore} – {prediction.direScore}
+                      </Hint>{' '}
+                      ·{' '}
+                      <Hint text="How far apart the two scores are, as a share of the higher one. This is the confidence in the prediction — a bigger gap is a stronger call.">
+                        {prediction.marginPercent}% margin
+                      </Hint>
                       {!prediction.complete && <span className="text-warn"> · incomplete</span>}
                     </div>
                   </div>

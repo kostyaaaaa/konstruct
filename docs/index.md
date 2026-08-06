@@ -18,7 +18,8 @@ Claude's context for the whole session, so keep imports focused and short.
 
 ## Read on demand — not imported
 
-- [apps/](apps/README.md) — one document per app, plus the checklist for
+- [apps/](apps/README.md) — two documents per app (what it is, and what is
+  planned for it), plus the checklist for
   [adding a new app](apps/README.md#adding-a-new-app). Read it before creating
   an app: several files have to be updated by hand, and missing one fails
   quietly. Deliberately outside the imports above — app-specific documentation

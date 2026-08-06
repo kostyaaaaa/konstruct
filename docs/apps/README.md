@@ -1,6 +1,16 @@
 # App documentation
 
-One file per app: `docs/apps/<app-name>.md`.
+Two files per app:
+
+| File                           | Holds                               |
+| ------------------------------ | ----------------------------------- |
+| `docs/apps/<app-name>.md`      | What the app **is** today           |
+| `docs/apps/<app-name>-todo.md` | What is **planned** for it, and why |
+
+They are kept apart on purpose. The first has to be trustworthy as a
+description of what exists; an idea sitting in the same file eventually gets
+built by someone who thought it was already there. See
+[../rules/documentation.md](../rules/documentation.md).
 
 These files are **not** imported by `docs/index.md` — keeping every app's
 documentation permanently in context would crowd out the rules that always
@@ -153,10 +163,14 @@ The dashboard's list is `apps/konstruct-dashboard/src/data/apps.ts`. Add an
 entry, and drop an icon into its `src/assets/icons` if the app needs a new one.
 Details in [konstruct-dashboard.md](konstruct-dashboard.md).
 
-### 5. Write its document
+### 5. Write its documents
 
 `docs/apps/<app-name>.md`, covering the sections listed above. Same change as the
 code, per [../rules/documentation.md](../rules/documentation.md).
+
+Add `docs/apps/<app-name>-todo.md` alongside it. A new app always has known gaps
+— write them down while they are still obvious, rather than rediscovering them
+in three months.
 
 ### 6. Add its commit scope
 

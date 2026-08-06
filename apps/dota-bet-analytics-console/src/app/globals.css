@@ -57,6 +57,18 @@
   ::selection {
     background-color: oklch(40% 0.08 300);
   }
+
+  /**
+   * Tailwind 4's reset follows the browser default, which is `cursor: default`
+   * on a button. Every button here is a real control, so it gets the pointer
+   * back — once, globally, rather than a `cursor-pointer` class on each one.
+   *
+   * A disabled button keeps the default cursor, since it does nothing.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @utility mono {

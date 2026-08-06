@@ -41,6 +41,36 @@ left-aligned" does not — it is a commit message.
 When in doubt, ask whether the sentence will still be worth reading in six
 months by someone who never saw the change.
 
+## 3a. Todo documents are the one exception
+
+Rule 3 says documents describe the current state. **`docs/apps/<app>-todo.md`
+is where the future goes instead** — one per app, listing what is planned and
+why.
+
+It is a separate file rather than a section inside the app's document, so the
+app document can stay strictly about what exists. Mixing the two is how a
+reader ends up implementing something that was only ever an idea.
+
+What belongs in it:
+
+- **The intent, not the implementation.** What should be true afterwards, and
+  why it matters. Not a task breakdown.
+- **What is already known**, so the work does not start from nothing — the
+  constraint that makes it awkward, the endpoint that would be involved, the
+  reason the obvious approach does not work.
+- **Open questions**, named as questions. A plan nobody has decided yet is more
+  useful written as "pick one of these two" than as a fake instruction.
+
+What does not:
+
+- Platform-wide decisions. Those live in `project/overview.md` under **Still
+  open**, because they are not one app's to make.
+- Bugs you are about to fix. Fix them.
+
+**An item that gets done leaves the file**, and whatever it changed is written
+into the app's document as current state. A todo list that keeps its completed
+items becomes a changelog nobody reads.
+
 ## 4. Where it goes
 
 Extend the existing document that covers the topic. Create a new file only when

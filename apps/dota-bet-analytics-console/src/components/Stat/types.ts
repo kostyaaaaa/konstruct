@@ -7,6 +7,8 @@ export type StatProps = {
   value: ReactNode;
   /** Replaces the label underneath when there is something better to say. */
   hint?: string;
+  /** Explains what the figure is, on hover over the label. */
+  title?: string;
   tone?: StatTone;
 };
 

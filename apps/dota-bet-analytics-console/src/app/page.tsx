@@ -60,18 +60,29 @@ export default async function ControlPage() {
             label="Last poll"
             value={ago(discovery.lastSuccessAt)}
             hint={discovery.paused ? 'Paused' : 'Last poll'}
+            title="How long ago the discovery worker last finished a poll of Steam's live games feed. It polls every 10 seconds, so anything over a minute means something is wrong."
             tone={pollTone(discovery.lastSuccessAt, discovery.paused)}
           />
           <Stat
             label="Live matches"
             value={discovery.liveMatchCount}
             hint={`${discovery.lastPollSawGames} in feed`}
+            title={`Professional matches live right now in a tracked tier 1-2 league. The feed returned ${discovery.lastPollSawGames} games in total on the last poll; the rest are in leagues we do not track.`}
           />
-          <Stat label="Snapshots / poll" value={discovery.lastSnapshotsWritten} />
+          <Stat
+            label="Snapshots / poll"
+            value={discovery.lastSnapshotsWritten}
+            title="Rows added to the snapshot archive on the last poll — one per live tracked match. It should equal the live match count."
+          />
           <Stat
             label="Last error"
             value={discovery.lastError ? 'yes' : 'none'}
             hint={discovery.lastError ?? 'Last error'}
+            title={
+              discovery.lastError
+                ? 'The error from the most recent failed poll. It clears as soon as a poll succeeds.'
+                : 'Whether the most recent discovery poll failed. Cleared by the next successful poll.'
+            }
             tone={discovery.lastError ? 'bad' : 'muted'}
           />
         </StatGrid>
@@ -93,13 +104,31 @@ export default async function ControlPage() {
       >
         {backfill ? (
           <StatGrid>
-            <Stat label="Last run" value={ago(backfill.lastRunAt)} tone="muted" />
-            <Stat label="Resolved" value={backfill.lastResolved} />
-            <Stat label="Awaiting result" value={backfill.lastPending} />
+            <Stat
+              label="Last run"
+              value={ago(backfill.lastRunAt)}
+              title="How long ago the backfill worker last looked for finished matches. It fills in who actually won, which is what turns a prediction into a correct or wrong one."
+              tone="muted"
+            />
+            <Stat
+              label="Resolved"
+              value={backfill.lastResolved}
+              title="Matches given a winner on the last run. Each one settles its prediction."
+            />
+            <Stat
+              label="Awaiting result"
+              value={backfill.lastPending}
+              title="Matches that have ended but whose result OpenDota has not published yet. They are retried on the next run."
+            />
             <Stat
               label="Last error"
               value={backfill.lastError ? 'yes' : 'none'}
               hint={backfill.lastError ?? 'Last error'}
+              title={
+                backfill.lastError
+                  ? 'The error from the most recent failed backfill run.'
+                  : 'Whether the most recent backfill run failed.'
+              }
               tone={backfill.lastError ? 'bad' : 'muted'}
             />
           </StatGrid>
@@ -112,10 +141,6 @@ export default async function ControlPage() {
         {workers.workers.map((worker) => (
           <WorkerRow key={worker.name} worker={worker} />
         ))}
-        <p className="mt-3 text-xs text-faint">
-          Pausing stops the work, not the process. The state is stored in the database, so it
-          survives a restart.
-        </p>
       </Panel>
 
       {live && live.count > 0 && (

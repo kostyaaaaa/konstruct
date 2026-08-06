@@ -2,6 +2,8 @@
 
 The platform shell. Lists every konstruct app as a card and links into it.
 
+What is planned next: [konstruct-dashboard-todo.md](konstruct-dashboard-todo.md).
+
 ## Purpose
 
 The entry point of the platform. It does not host app functionality — it

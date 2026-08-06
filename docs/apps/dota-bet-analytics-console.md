@@ -4,6 +4,8 @@ The frontend for [dota-bet-analytics](dota-bet-analytics.md). Shows what the
 workers are doing, the matches being tracked, the predictions and how well they
 have held up — and lets you pause and resume the workers.
 
+What is planned next: [dota-bet-analytics-console-todo.md](dota-bet-analytics-console-todo.md).
+
 ## Purpose
 
 An operations console for one person. It has no accounts, no writes of its own,
@@ -87,6 +89,33 @@ the accuracy threshold is a set of links that change a query parameter. Both
 work without hydration, which for a console that mostly displays numbers is
 simpler than managing client state.
 
+### Three colour meanings, three hues
+
+Green and red carry two meanings already — Radiant and Dire, and correct and
+wrong. A prediction favouring Dire that turned out right showed a red team name
+next to a green "correct", which reads as a contradiction.
+
+So **favoured is the accent purple**, everywhere it appears: the badge and score
+on the roster, and the team name in the predictions list. Nothing else uses the
+accent for meaning, so it cannot be confused with a side or an outcome.
+
+The match page states who won and stops there. Whether that made the prediction
+right is on the predictions list, where "correct" and "wrong" are words rather
+than colours on a team name.
+
+### Tooltips are native `title` attributes
+
+Every figure is explained on hover through the `Hint` component, which sets a
+`title` and marks the text with a dotted underline.
+
+A positioned tooltip would have to measure itself and flip near the viewport
+edge — client JavaScript in an app that otherwise ships none — and would be
+clipped by the panels' rounded corners. The browser's own tooltip has neither
+problem and works before hydration.
+
+`Hint` is for anything the reader has to be told; a plain `title` is enough for
+text that already explains itself, like a status word.
+
 ### Every page is dynamic
 
 Each route sets `dynamic = 'force-dynamic'` and every fetch uses
@@ -101,6 +130,12 @@ degrades a single panel rather than taking down the page.
 `NetWorthChart` uses `gameTime`, not `capturedAt`. Pauses are frequent in pro
 play, and plotting against wall clock would stretch a pause into a slope that
 never happened. It is inline SVG — no charting library.
+
+Its colour follows who led at each moment, so the line is split wherever it
+crosses zero and each run drawn in that side's colour. Colouring the whole line
+by the final value is simpler but misleading: a match that was even for twenty
+minutes reads as one-sided from the first minute. The crossing point is
+interpolated, so the two colours meet exactly on the zero line.
 
 ### The console mark exists in three files, on purpose
 

@@ -4,6 +4,8 @@ The backend. Discovers live tier 1–2 Dota 2 professional matches, snapshots
 them, scores both teams, and serves the result to
 [dota-bet-analytics-console](dota-bet-analytics-console.md).
 
+What is planned next: [dota-bet-analytics-todo.md](dota-bet-analytics-todo.md).
+
 Everything described here works. [Current state](#current-state) lists what is
 verified and what is still only partly done.
 
