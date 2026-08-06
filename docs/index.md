@@ -24,8 +24,14 @@ Claude's context for the whole session, so keep imports focused and short.
   quietly. Deliberately outside the imports above — app-specific documentation
   is read when working on that app, not carried in context permanently.
 - [rules/nestjs.md](rules/nestjs.md) — how to structure a NestJS app, and when
-  to choose it over Express. Read it when working on a NestJS app. It stays out
-  of the imports because no app uses NestJS yet; move it up the moment one does.
+  to choose it over Express. Read it when working on a NestJS app, the same way
+  an app's own document is read. One app uses NestJS today.
+- [project/infrastructure.md](project/infrastructure.md) — every external
+  service and core dependency, across all apps: hosting, database, secrets,
+  logs, email, CI, and what is deliberately not used. Read it when adding a
+  service or a dependency, or when something external is misbehaving. The
+  decisions it records are summarised in `overview.md`, which is imported; the
+  detail is not carried in context.
 
 ## Adding a document
 

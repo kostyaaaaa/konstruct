@@ -16,7 +16,7 @@ konstruct/
 ├── docs/
 │   ├── index.md               # imports of the always-loaded docs
 │   ├── rules/                 # rules for Claude — always in context
-│   ├── project/               # overview, structure — always in context
+│   ├── project/               # overview + structure in context, infrastructure on demand
 │   └── apps/                  # one file per app — read on demand
 ├── pnpm-workspace.yaml        # workspace roots + reviewed install-script exceptions
 ├── .infisical.json            # links the workspace to the Konstruct project (no secrets)

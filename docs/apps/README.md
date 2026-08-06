@@ -113,6 +113,12 @@ pnpm --filter <app-name> add @konstruct/logger --workspace
 Usage, and why `ENV` matters for filtering, is in
 [../rules/backend.md](../rules/backend.md#4-logging).
 
+**Once the app is deployed, add an Infisical Secret Sync** from its folder to
+its Railway or Vercel project. A sync belongs to one destination project and is
+not inherited, so a new app has none until you make one. Without it every
+variable has to be copied into the host by hand, and the two drift apart the
+first time one is changed in only one place.
+
 ### 3. Register it for `pnpm dev`
 
 Add an entry to [`scripts/apps.config.js`](../../scripts/apps.config.js):
@@ -181,6 +187,9 @@ the spell checker stops underlining them.
 - [`apps/README.md`](../../apps/README.md) — the app list
 - [`README.md`](../../README.md) — the Apps table
 - [`docs/project/structure.md`](../project/structure.md) — the tree
+- [`docs/project/overview.md`](../project/overview.md) — the Status list
+- [`docs/project/infrastructure.md`](../project/infrastructure.md) — only if the
+  app brings in a service or a core dependency nothing else uses
 
 ### 8. Verify before finishing
 
@@ -198,5 +207,8 @@ A frontend gets its own project on Vercel, with **Root Directory** set to
 `apps/<app-name>`. Apps deploy independently; the dashboard only links to them.
 
 A worker cannot go on Vercel — there is no request to trigger it and nothing
-keeps the process alive. It needs a host that runs a long-lived process, or a
-redesign where a hosted scheduler calls it.
+keeps the process alive. Those go to Railway, which runs a long-lived process.
+
+Check [../project/infrastructure.md](../project/infrastructure.md) before
+picking anything new: it lists what each host can and cannot do, and what is
+deliberately not used.

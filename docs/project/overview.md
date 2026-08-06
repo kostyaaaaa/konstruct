@@ -32,16 +32,31 @@ user navigates into distinct apps.
   one that cannot.
 - **Backend framework** — Express or NestJS, chosen per app and recorded in that
   app's document. [Rules](../rules/backend.md), [NestJS rules](../rules/nestjs.md).
-- **Dashboard stack** — Next.js 16 App Router, React 19, TypeScript, Tailwind
-  CSS 4. Applies to the dashboard; a later app may pick differently.
+- **Hosting** — Vercel for Next.js apps, Railway for anything that must stay
+  alive. Railway blocks outbound SMTP below its Pro plan, which is why email
+  goes over an HTTP API.
+- **Database** — MongoDB Atlas, one cluster, dev and prod split by database
+  name.
+- **Email** — Resend, over its HTTP API. No SMTP.
+- **Frontend stack** — Next.js 16 App Router, React 19, TypeScript, Tailwind
+  CSS 4. Both frontends use it.
+
+Every service and core dependency is catalogued in
+[infrastructure.md](infrastructure.md), including what is deliberately not
+used.
 
 ## App routing
 
 Apps are separate deployments. The dashboard links to them by URL and assumes
 nothing about where they live — every card's target is an opaque `href`.
 
-Not every app has a URL. `dota-bet-analytics` is a worker with no HTTP server,
-so its card points at `#` and the routing question below does not apply to it.
+A card can point at something other than the app itself. `dota-bet-analytics`
+is an API with workers and no UI, so its card links to
+`dota-bet-analytics-console` instead.
+
+Every `href` resolves per environment, so the dashboard links to localhost in
+dev and to the deployed URL in prod. That depends on `ENV` being set in the
+dashboard's own environment.
 
 That leaves three options open, in increasing order of coupling:
 
@@ -56,23 +71,22 @@ change to the dashboard.
 
 ## Still open
 
-- Frontend framework for apps other than the dashboard. On the backend the
-  choice is settled: Express or NestJS, per app.
 - Whether apps stay in `apps/` or move to separate repositories — this decides
   whether shared packages stay `workspace:*` or get published to a registry.
-- Which routing option above to commit to, once a real app is deployed.
-- Build orchestration (Turborepo or plain pnpm scripts), now that one package
-  builds and more will.
-- Where a long-running worker is hosted. Vercel runs functions per request and
-  cannot hold a cron process alive, so `dota-bet-analytics` needs a different
-  host than the dashboard.
+- Which routing option above to commit to. Separate domains work; nothing yet
+  forces a change.
+- Build orchestration (Turborepo or plain pnpm scripts), now that three apps
+  build.
+- Testing. There is no test runner and no tests, in any app.
 
 ## Status
 
-Two apps, neither deployed.
+Three apps, all deployed.
 
-- `konstruct-dashboard` — the shell. Lists a static set of apps and filters them
-  by name. Every `href` is still `#`.
-- `dota-bet-analytics` — a Node cron worker, moved in from its own repository.
-  It runs locally and has no HTTP server, so the dashboard cannot link to it
-  yet.
+- `konstruct-dashboard` — the shell, on Vercel. Lists a static set of apps and
+  filters them by name.
+- `dota-bet-analytics` — NestJS API and in-process workers, on Railway. Polls
+  live professional matches, archives snapshots, scores predictions and emails
+  a report.
+- `dota-bet-analytics-console` — its frontend, on Vercel. Worker control, live
+  matches, predictions and accuracy, and recent logs.
