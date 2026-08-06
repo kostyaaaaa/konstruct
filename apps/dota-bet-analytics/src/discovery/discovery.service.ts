@@ -217,11 +217,17 @@ export class DiscoveryService {
         if (await this.predictions.existsFor(match.matchId)) {
           continue;
         }
+        /* The tournament's name, not just its id. Looked up once per new
+           match, which is the only time a prediction is made. */
+        const league = await this.leagues.findByLeagueId(match.leagueId);
+
         const prediction = await this.predictions.analyse(game, {
           matchId: match.matchId,
           leagueId: match.leagueId,
+          leagueName: league?.name,
           radiantTeamName: match.radiantTeamName,
           direTeamName: match.direTeamName,
+          streamDelaySeconds: match.streamDelaySeconds,
         });
 
         if (prediction) {

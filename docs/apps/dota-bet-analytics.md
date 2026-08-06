@@ -54,7 +54,9 @@ thing you look at.
 - **The snapshot archive.** Append-only time-series of in-game state.
 - **The score.** Two numbers per match, radiant and dire, from player-hero win
   rates weighted against hero familiarity.
-- **The email report.** A Handlebars template sent per newly analysed match.
+- **The report.** A Telegram rich message posted per newly analysed match.
+- **The professional player list.** `pro_players`, synced from OpenDota, so a
+  roster can show the name a player is known by rather than their Steam name.
 
 ## Uses
 
@@ -97,25 +99,25 @@ missing one lists every problem at once and refuses to boot.
 **dev and prod are separate databases on the same Atlas cluster**, split by
 `DB_NAME`. One cluster keeps it inside the free tier; separate names stop local
 testing from writing fake matches and predictions into production, and from
-emailing reports about them.
+posting reports about them to the channel.
 
-| Variable           | What it is                                                     |
-| ------------------ | -------------------------------------------------------------- |
-| `ENV`              | `dev` or `prod` — tags every log event                         |
-| `PORT`             | `4001`                                                         |
-| `DB_HOST`          | MongoDB Atlas host                                             |
-| `DB_USER`          | MongoDB user                                                   |
-| `DB_PASSWORD`      | MongoDB password                                               |
-| `DB_NAME`          | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
-| `STEAM_API_KEY`    | Steam Web API key, server-side only                            |
-| `OPENDOTA_API_URL` | Defaults to the public API; no key                             |
-| `RESEND_API_KEY`   | Resend API key, for sending the report                         |
-| `REPORT_FROM`      | Sender, as `Name <address>`                                    |
-| `EMAIL`            | Address the report is sent to                                  |
-| `AXIOM_DATASET`    | `dota-bet-analytics`                                           |
-| `AXIOM_TOKEN`      | Ingest token                                                   |
-| `AXIOM_EDGE`       | `us-east-1.aws.edge.axiom.co`                                  |
-| `LOG_LEVEL`        | Optional, defaults to `info`                                   |
+| Variable             | What it is                                                     |
+| -------------------- | -------------------------------------------------------------- |
+| `ENV`                | `dev` or `prod` — tags every log event                         |
+| `PORT`               | `4001`                                                         |
+| `DB_HOST`            | MongoDB Atlas host                                             |
+| `DB_USER`            | MongoDB user                                                   |
+| `DB_PASSWORD`        | MongoDB password                                               |
+| `DB_NAME`            | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
+| `STEAM_API_KEY`      | Steam Web API key, server-side only                            |
+| `OPENDOTA_API_URL`   | Defaults to the public API; no key                             |
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather                                      |
+| `TELEGRAM_CHAT_ID`   | Channel id, or `@channelusername`                              |
+| `CONSOLE_URL`        | Optional. Where the report's "View match" link points          |
+| `AXIOM_DATASET`      | `dota-bet-analytics`                                           |
+| `AXIOM_TOKEN`        | Ingest token                                                   |
+| `AXIOM_EDGE`         | `us-east-1.aws.edge.axiom.co`                                  |
+| `LOG_LEVEL`          | Optional, defaults to `info`                                   |
 
 ## Deploy
 
@@ -245,44 +247,87 @@ it is empty.
 `where ['fields.service'] == "api"`. Both are easy to get wrong without
 noticing, because the query still succeeds and simply returns blank columns.
 
-### The email template was kept, and the data adapted to it
+### A prediction records the delay it was made under
 
-`src/templates/dotaReport.hbs` predates the current data model. It is 300 lines
-of hand-written HTML that renders properly in mail clients, so `ReportService`
-maps a `Prediction` into the shape the template already expects rather than the
-template being rewritten.
+Each live game carries a `stream_delay_s`, and the scoreboard appears to arrive
+on that same delayed timeline — a 900-second league gives us the draft a quarter
+of an hour after it was picked. `streamDelaySeconds` is stored on the
+prediction and shown in both the report and the console, because it is the
+difference between a pick made at draft time and one made fifteen minutes into
+the game.
 
-`tsc` only emits what it compiles, so `scripts/copy-assets.mjs` copies the
-template into `dist` at build time. Without it the report would fail on the
-first match rather than at build.
+The limitation itself, the measurements behind it, and what might be done about
+it are in [dota-bet-analytics-todo.md](dota-bet-analytics-todo.md).
 
-### The report goes over HTTP, because Railway blocks SMTP
+### Steam names are not player names
 
-Railway allows outbound SMTP on the **Pro plan and above only** — on Free,
-Trial and Hobby, ports 25, 465, 587 and 2525 are firewalled. The packets are
-dropped rather than refused, so a mail library does not fail: it waits for its
-connection timeout and then reports a timeout that looks like a broken mail
-server.
+The account playing in a match is identified by its Steam persona, which is
+whatever the player has set — `♦`, `failure`, `Мечта.`. `ProPlayersService`
+syncs OpenDota's registered professional list daily into `pro_players`, and a
+prediction stores the nickname alongside the Steam name.
 
-So the report is sent through [Resend](https://resend.com)'s HTTP API, which is
-ordinary traffic on 443. No SMTP library is involved.
+Both are kept. The Steam name identifies the account; the nickname is what the
+player is called. Not everyone resolves — a tier 2 league has unregistered
+players — so the Steam name stays as the fallback rather than being replaced.
 
-Until a domain is verified with Resend, two limits apply: `REPORT_FROM` has to
-be `onboarding@resend.dev`, and mail is only delivered to the address the
-Resend account was registered with. Verifying a domain lifts both and is a
-change to `REPORT_FROM` alone.
+### The report goes to Telegram, because there is no domain to send from
 
-### Mail is sent after the poll, not inside it
+Every email provider requires a **verified sending domain** — DNS records
+proving you own it. This app is deployed on `vercel.app` and `railway.app`
+subdomains, whose DNS we do not control, so there is nothing to verify.
+
+Expect a provider to accept the API call and report success, then fail delivery
+separately: the send is asynchronous, so an unverified domain looks like a
+working integration right up until nothing arrives. Buying a domain is the only
+thing that changes this.
+
+A Telegram bot needs no domain, no DNS and no sending reputation, and cannot be
+filtered into a spam folder. Railway's SMTP block below the Pro plan is
+irrelevant too, since this is an ordinary HTTPS call.
+
+**Rich messages, not plain text.** Bot API 10.1 added typed blocks — headings,
+lists, quotes, dividers. `rich-message.ts` types the slice used here;
+`report.builder.ts` assembles the blocks.
+
+**The message is short on purpose: the call, and how far to trust it.** Five
+lines — who is favoured and by how much, the two scores, how past calls at that
+confidence turned out, any reliability warning, and a footer with the league,
+the delay and a link to the match.
+
+**The rosters are not in it**, and both ways of including them were tried on a
+phone. A table crops, because its columns are fixed and do not reflow. A list
+wraps correctly but ten players make twenty lines, which buries the one
+sentence worth reading. The console already renders the full rosters properly,
+and the footer link opens that match directly — so the detail is one tap away
+rather than in the way.
+
+Blocks are built as **structured JSON, not HTML or Markdown**, although
+Telegram accepts all three. Player names contain characters that are syntax in
+both — one roster genuinely included `⃤⃟⃝⃤⃟⃝⃤`, `&nbsp;`, `.` and `Ankou ♡`.
+Escaping those correctly every time is a bug waiting to happen; JSON string
+fields need no escaping at all.
+
+Telegram rejects an over-long message rather than truncating it, so the builder
+counts blocks against the documented ceilings before sending. A real match uses
+about 23 of the 500 allowed.
+
+**A block's `type` string is not its class name.** `InputRichBlockBlockQuotation`
+sends `"blockquote"`, `InputRichBlockSectionHeading` sends `"heading"`, and
+`InputRichBlockPreformatted` sends `"pre"`. Read the "always ..." value in each
+class's `type` field rather than deriving it, or the API answers
+`can't parse InputRichBlock: type "..." is unsupported`.
+
+### The report is sent after the poll, not inside it
 
 `DiscoveryService.poll` runs on a 10-second interval and guards against
 overlapping itself with a flag. Anything awaited while that flag is held stops
-discovery — and a mail provider that hangs takes as long as its timeout to
-fail, which is far longer than the interval.
+discovery — and an unreachable API takes as long as its timeout to fail, which
+is far longer than the interval.
 
-So `runPoll` returns the predictions it made, and the emails are sent after the
-flag is released. A slow provider then delays only the email. `ReportService.send`
-reports its own failures and never throws, so nothing escapes into an unhandled
-rejection.
+So `runPoll` returns the predictions it made, and the reports are sent after
+the flag is released. A slow provider then delays only the report.
+`ReportService.send` reports its own failures and never throws, so nothing
+escapes into an unhandled rejection.
 
 ### Current state
 
@@ -332,10 +377,9 @@ Working:
   against three real finished matches, including one where the same team won
   from the other side. Pausable like discovery.
 
-- **The email report is wired, and unverified in production.** Each new
-  prediction is emailed as well as stored, using the original Handlebars
-  template over Resend's HTTP API. No report has been delivered from Railway
-  yet.
+- **The report posts to Telegram, and is unverified in production.** Each new
+  prediction is posted as well as stored. The message builder is tested against
+  real stored predictions, but nothing has been delivered to a channel yet.
 
 Everything planned for the backend is built.
 

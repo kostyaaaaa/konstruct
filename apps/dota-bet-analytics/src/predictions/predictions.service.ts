@@ -7,6 +7,7 @@ import type { SteamLiveGame, SteamScoreboardSide } from '../discovery/steam.type
 import { HeroesService } from '../heroes/heroes.service.js';
 import { AppLogger } from '../logger/logger.service.js';
 import { OpenDotaService } from '../opendota/opendota.service.js';
+import { ProPlayersService } from '../pro-players/pro-players.service.js';
 import { Prediction, type PredictionPlayer } from './prediction.schema.js';
 import { pick, scoreSide, type PlayerHeroStats } from './scoring.js';
 
@@ -19,6 +20,7 @@ export interface PredictionContext {
   leagueName?: string;
   radiantTeamName?: string;
   direTeamName?: string;
+  streamDelaySeconds?: number;
 }
 
 @Injectable()
@@ -27,6 +29,7 @@ export class PredictionsService {
     @InjectModel(Prediction.name) private readonly model: Model<Prediction>,
     private readonly openDota: OpenDotaService,
     private readonly heroes: HeroesService,
+    private readonly proPlayers: ProPlayersService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -114,10 +117,14 @@ export class PredictionsService {
     return mapWithLimit(players, OPENDOTA_CONCURRENCY, async (player) => {
       const accountId = player.account_id ?? 0;
       const heroId = player.hero_id ?? 0;
-      const hero = await this.heroes.findByHeroId(heroId);
+      const [hero, proName] = await Promise.all([
+        this.heroes.findByHeroId(heroId),
+        this.proPlayers.nameFor(accountId),
+      ]);
 
       const base: PredictionPlayer = {
         accountId,
+        proName: proName ?? undefined,
         heroId,
         heroName: hero?.localizedName,
         heroImageUrl: hero?.imageUrl,

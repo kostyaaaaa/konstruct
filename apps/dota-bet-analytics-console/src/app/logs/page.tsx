@@ -66,7 +66,7 @@ export default async function LogsPage({
     <Panel
       title="Logs"
       action={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 max-sm:gap-2">
           <div className="flex gap-1">
             {ENVS.map((value) => (
               <Link key={value} href={href({ env: value })} className={tab(value === env)}>
@@ -107,7 +107,7 @@ export default async function LogsPage({
             return (
               <li
                 key={`${row.time}-${index}`}
-                className="flex gap-3 border-b border-line/40 py-1.5"
+                className="flex flex-wrap gap-3 border-b border-line/40 py-1.5 max-sm:gap-x-2 max-sm:gap-y-1"
               >
                 <span className="w-12 shrink-0 text-faint">{when.day}</span>
                 <span className="shrink-0 text-faint">{when.time}</span>
@@ -120,8 +120,14 @@ export default async function LogsPage({
                 <span className={`w-12 shrink-0 ${LEVEL_CLASS[row.level] ?? 'text-muted'}`}>
                   {row.level}
                 </span>
-                <span className="min-w-0 flex-1 wrap-break-word text-ink">{row.message}</span>
-                {row.context && <span className="shrink-0 text-faint">{row.context}</span>}
+                <span className="min-w-0 flex-1 wrap-break-word text-ink max-sm:order-5 max-sm:basis-full">
+                  {row.message}
+                </span>
+                {row.context && (
+                  <span className="shrink-0 text-faint max-sm:order-6 max-sm:basis-full max-sm:text-[11px]">
+                    {row.context}
+                  </span>
+                )}
               </li>
             );
           })}

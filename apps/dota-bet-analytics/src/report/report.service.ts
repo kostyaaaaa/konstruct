@@ -1,134 +1,83 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Handlebars from 'handlebars';
 
 import { HttpObserver } from '../common/http-observer.js';
 import { fetchJson } from '../common/http.js';
 import type { Env } from '../config/env.schema.js';
 import { AppLogger } from '../logger/logger.service.js';
-import type { Prediction, PredictionPlayer } from '../predictions/prediction.schema.js';
-import { registerReportHelpers } from './handlebars-helpers.js';
+import type { Prediction } from '../predictions/prediction.schema.js';
+import { PredictionsService } from '../predictions/predictions.service.js';
+import { buildReport } from './report.builder.js';
+import { countBlocks, RICH_MESSAGE_LIMITS } from './rich-message.js';
 
-/**
- * The template's own vocabulary.
- *
- * It predates the current data model, and it is 300 lines of hand-written
- * HTML that renders well in mail clients — so the prediction is adapted to it
- * rather than the template being rewritten to match.
- */
-interface TemplateHero {
-  heroImageLink?: string;
-  heroStats: { winrate: number | null; heroIndex: number | null; games: number };
-  playerStats: { leaderboard_rank?: number };
+interface TelegramResponse {
+  ok?: boolean;
+  description?: string;
+  result?: { message_id?: number };
 }
-
-interface TemplateModel {
-  team_name_radiant?: string;
-  team_name_dire?: string;
-  radiant_score: number;
-  dire_score: number;
-  radiantStats: number;
-  direStats: number;
-  currentRadiantHeroes: TemplateHero[];
-  currentDireHeroes: TemplateHero[];
-}
-
-function toTemplateHero(player: PredictionPlayer): TemplateHero {
-  return {
-    heroImageLink: player.heroImageUrl,
-    heroStats: {
-      winrate: player.winRate,
-      heroIndex: player.heroRank,
-      games: player.gamesOnHero,
-    },
-    playerStats: { leaderboard_rank: player.leaderboardRank },
-  };
-}
-
-/** Only the field we use. */
-interface ResendResponse {
-  id?: string;
-}
-
-const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 @Injectable()
-export class ReportService implements OnModuleInit {
-  private template: HandlebarsTemplateDelegate<TemplateModel> | null = null;
-
+export class ReportService {
   constructor(
     private readonly config: ConfigService<Env, true>,
+    private readonly predictions: PredictionsService,
     private readonly http: HttpObserver,
     private readonly logger: AppLogger,
   ) {}
 
-  async onModuleInit() {
-    registerReportHelpers();
-
-    /* Compiled once at startup rather than per send. Reading it here also
-       means a missing or broken template fails on boot, not on the first
-       match of a tournament. */
-    const templatePath = path.resolve(import.meta.dirname, '../templates/dotaReport.hbs');
-    const source = await readFile(templatePath, 'utf8');
-    this.template = Handlebars.compile<TemplateModel>(source);
-  }
-
-  render(prediction: Prediction): string {
-    if (!this.template) {
-      throw new Error('Report template not compiled');
-    }
-
-    return this.template({
-      team_name_radiant: prediction.radiantTeamName,
-      team_name_dire: prediction.direTeamName,
-      radiant_score: 0,
-      dire_score: 0,
-      radiantStats: prediction.radiantScore,
-      direStats: prediction.direScore,
-      currentRadiantHeroes: prediction.radiantPlayers.map(toTemplateHero),
-      currentDireHeroes: prediction.direPlayers.map(toTemplateHero),
-    });
-  }
-
   /**
-   * Emails one prediction, through Resend's HTTP API.
+   * Posts one prediction to the Telegram channel.
    *
-   * **Not SMTP, and it cannot be.** Railway allows outbound SMTP on Pro and
-   * above only; on Hobby the ports are firewalled, so a mail server is simply
-   * unreachable no matter how the credentials are set. An HTTPS API is the
-   * supported way out, and it is ordinary traffic on 443.
+   * **Telegram rather than email**, because the app has no domain to send from.
+   * Every mail provider requires a verified sending domain, and the deployment
+   * lives on `vercel.app` and `railway.app` subdomains whose DNS we do not
+   * control. A bot needs no domain, no DNS and no deliverability reputation,
+   * and it cannot be filtered into a spam folder.
    *
    * Returns whether it was sent. A failure is logged, never thrown: the
    * prediction is already stored and visible in the console, and losing the
-   * archive because a mail provider was down would be the worse outcome.
+   * archive because Telegram was unreachable would be the worse outcome.
    */
   async send(prediction: Prediction): Promise<boolean> {
     try {
-      const response = await fetchJson<ResendResponse>(RESEND_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${this.config.get('RESEND_API_KEY', { infer: true })}`,
-          /* One prediction per match, so the match id is the natural key.
-             Without it a retried request — the first may have been carried
-             out before it timed out — sends the report twice. */
-          'idempotency-key': `prediction-${prediction.matchId}`,
-        },
-        body: {
-          from: this.config.get('REPORT_FROM', { infer: true }),
-          to: this.config.get('EMAIL', { infer: true }),
-          subject: `${prediction.radiantTeamName ?? 'Radiant'} vs ${prediction.direTeamName ?? 'Dire'}`,
-          html: this.render(prediction),
-        },
-        observer: this.http.for('resend'),
+      const blocks = buildReport(prediction, {
+        consoleUrl: this.config.get('CONSOLE_URL', { infer: true }),
+        calibration: await this.calibrationFor(prediction),
       });
+
+      const used = countBlocks(blocks);
+      if (used > RICH_MESSAGE_LIMITS.blocks) {
+        /* Telegram rejects the whole message rather than truncating, so an
+           over-long report would be silently lost. Ten players is nowhere
+           near the limit — reaching it means something built the wrong thing. */
+        throw new Error(`Report uses ${used} blocks, over the ${RICH_MESSAGE_LIMITS.blocks} limit`);
+      }
+
+      const token = this.config.get('TELEGRAM_BOT_TOKEN', { infer: true });
+      const response = await fetchJson<TelegramResponse>(
+        `https://api.telegram.org/bot${token}/sendRichMessage`,
+        {
+          method: 'POST',
+          body: {
+            chat_id: this.config.get('TELEGRAM_CHAT_ID', { infer: true }),
+            rich_message: { blocks },
+          },
+          observer: this.http.for('telegram'),
+        },
+      );
+
+      /* Telegram answers 200 with `ok: false` for an application-level
+         refusal — a bot removed from the channel, a malformed block. Without
+         this check that reads as success. */
+      if (response.ok === false) {
+        throw new Error(`Telegram refused the message: ${response.description ?? 'no reason'}`);
+      }
 
       this.logger.log('report sent', {
         context: 'Report',
         matchId: prediction.matchId,
-        messageId: response.id,
+        messageId: response.result?.message_id,
+        blocks: used,
       });
       return true;
     } catch (error) {
@@ -137,6 +86,30 @@ export class ReportService implements OnModuleInit {
         matchId: prediction.matchId,
       });
       return false;
+    }
+  }
+
+  /**
+   * How past predictions at this confidence or better actually turned out.
+   *
+   * A margin on its own says how far apart the two scores were; it says
+   * nothing about whether that gap has ever meant anything. This is the part
+   * that makes the number worth acting on.
+   *
+   * Never fails the report: an unavailable figure is dropped, because the
+   * prediction itself is still worth sending.
+   */
+  private async calibrationFor(prediction: Prediction) {
+    try {
+      const accuracy = await this.predictions.accuracy(prediction.marginPercent);
+      return { accuracyPercent: accuracy.accuracyPercent, settled: accuracy.settled };
+    } catch (error) {
+      this.logger.warn('calibration unavailable, sending report without it', {
+        context: 'Report',
+        matchId: prediction.matchId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
     }
   }
 }

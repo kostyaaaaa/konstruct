@@ -24,7 +24,7 @@ export default async function PredictionsPage({
       <Panel
         title="Accuracy"
         action={
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {THRESHOLDS.map((value) => (
               <Link
                 key={value}
@@ -92,7 +92,7 @@ export default async function PredictionsPage({
               <li key={prediction.matchId}>
                 <Link
                   href={`/matches/${prediction.matchId}`}
-                  className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 py-3 transition-colors last:border-0 hover:bg-field"
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 py-3 transition-colors last:border-0 hover:bg-field max-sm:gap-3.5"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm">
@@ -132,7 +132,7 @@ export default async function PredictionsPage({
                     </div>
                   </div>
 
-                  <div className="text-right text-xs">
+                  <div className="text-right text-xs max-sm:ml-0 max-sm:text-left">
                     {prediction.winner ? (
                       <span className={prediction.correct ? 'text-ok' : 'text-bad'}>
                         {prediction.correct ? 'correct' : 'wrong'}

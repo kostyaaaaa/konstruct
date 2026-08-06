@@ -33,6 +33,14 @@ export interface PlayerHeroRecord {
   winRate: number | null;
 }
 
+/** Only the fields used; the endpoint returns many more. */
+export interface OpenDotaProPlayer {
+  account_id?: number;
+  /** The competitive nickname, e.g. `Yatoro`. */
+  name?: string;
+  team_name?: string;
+}
+
 @Injectable()
 export class OpenDotaService {
   constructor(
@@ -46,6 +54,21 @@ export class OpenDotaService {
 
   private get baseUrl() {
     return this.config.get('OPENDOTA_API_URL', { infer: true });
+  }
+
+  /**
+   * Every registered professional player.
+   *
+   * One large response — thousands of rows — so it is synced on a schedule
+   * into `pro_players` rather than called per prediction.
+   */
+  async proPlayers(): Promise<OpenDotaProPlayer[]> {
+    return fetchJson<OpenDotaProPlayer[]>(`${this.baseUrl}/proPlayers`, {
+      observer: this.observer,
+      /* The list is far bigger than any other call here, so it gets longer
+         than the 10s default before an attempt is abandoned. */
+      timeoutMs: 30_000,
+    });
   }
 
   async matchDetail(matchId: number): Promise<{ radiant_win?: boolean } | null> {

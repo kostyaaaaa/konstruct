@@ -89,6 +89,54 @@ the accuracy threshold is a set of links that change a query parameter. Both
 work without hydration, which for a console that mostly displays numbers is
 simpler than managing client state.
 
+**The rule is that no figure needs hydration to be readable**, not that no
+JavaScript may exist. Two components are client components because they cannot
+be anything else: `Nav`, which reads the current path to mark the active tab,
+and `AutoRefresh` below.
+
+### Every screen refreshes itself every 10 seconds
+
+`AutoRefresh` sits in the layout and calls `router.refresh()` on a timer. Every
+screen reports something that is true _right now_ — a worker's state, a live
+match, the last poll — and stale numbers presented as current are worse than no
+numbers.
+
+`router.refresh()` re-runs the server components and swaps in the new output.
+It is not a page load: scroll position, focus and open state all survive, which
+a `<meta http-equiv="refresh">` would not.
+
+It skips the tick when the tab is hidden, and catches up when it becomes
+visible again. Without that, a console left open overnight would poll the API
+about 8,000 times for output nobody is looking at.
+
+### Players are shown by their competitive nickname
+
+The roster prefers `proName` and falls back to `personaName`. The second is
+only the Steam display name — the account called `♦` belongs to **bb3px**, and
+`failure` is **yowaai** — so the fallback is a last resort, not the default.
+
+Not every player resolves. The nickname comes from OpenDota's registered
+professional list, and a tier 2 league has players who are not on it. Measured
+on a real match: nine of ten. The tenth keeps their Steam name, which is
+correct rather than a failure, and the tooltip says which kind of name is being
+shown.
+
+### One breakpoint, at 640px
+
+Everything responsive uses Tailwind's `max-sm:` prefix and nothing else. A
+console read on a phone and on a laptop does not need a scale of sizes — it
+needs one layout that stops overflowing.
+
+Below 640px: the header loses the "Konstruct" wordmark and tightens its
+padding, the nav shrinks, stat grids drop to two columns, rosters to one, and
+every row that was a left-and-right pair wraps so the right-hand side sits
+under the left rather than being squeezed. Log rows put the message and the
+context on their own full-width lines.
+
+The rule for a new row: if it is `justify-between` with content on both sides,
+it needs `flex-wrap` and the right-hand side needs `max-sm:text-left`, or it
+will crush on a phone.
+
 ### Three colour meanings, three hues
 
 Green and red carry two meanings already — Radiant and Dire, and correct and

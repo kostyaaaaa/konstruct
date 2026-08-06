@@ -9,6 +9,12 @@ import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
+/** `900` -> `15m`. Under a minute keeps its unit, so a 10s league does not
+    round to `0m` and read as no delay at all. */
+function formatDelay(seconds: number): string {
+  return seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;
+}
+
 export default async function MatchDetailPage({
   params,
 }: {
@@ -45,7 +51,7 @@ export default async function MatchDetailPage({
         {prediction ? (
           <>
             <Panel title="Prediction">
-              <div className="mb-4 flex flex-wrap gap-6 text-sm">
+              <div className="mb-4 flex flex-wrap gap-6 text-sm max-sm:gap-x-4 max-sm:gap-y-2.5">
                 <div>
                   <Hint
                     text="The side whose five players scored higher. This is the prediction."
@@ -79,6 +85,17 @@ export default async function MatchDetailPage({
                     <span className="text-muted">pending</span>
                   )}
                 </div>
+                {prediction.streamDelaySeconds !== undefined && (
+                  <div>
+                    <Hint
+                      text="Valve serves this league's scoreboard on a delayed timeline, so the draft reached us this long after it was actually picked. The prediction is that far behind the real game from the moment it is made."
+                      className="text-faint"
+                    >
+                      Delay
+                    </Hint>{' '}
+                    <span className="mono">{formatDelay(prediction.streamDelaySeconds)}</span>
+                  </div>
+                )}
                 {!prediction.complete && (
                   <div className="text-warn">incomplete — some player stats were unavailable</div>
                 )}

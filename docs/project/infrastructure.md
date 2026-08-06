@@ -20,7 +20,7 @@ under [docs/apps/](../apps/README.md).
 | [MongoDB Atlas](#mongodb-atlas)   | The database                 | Free tier       | dota-bet-analytics |
 | [Infisical](#infisical)           | Secrets                      | Free tier       | everything         |
 | [Axiom](#axiom)                   | Logs                         | Free tier       | everything         |
-| [Resend](#resend)                 | Sends the report email       | Free tier       | dota-bet-analytics |
+| [Telegram](#telegram)             | Posts the prediction report  | Free            | dota-bet-analytics |
 | [GitHub Actions](#github-actions) | CI on push and pull request  | Free            | the repository     |
 
 Two external APIs are read but not paid for: **Steam Web API**
@@ -34,9 +34,8 @@ platform that runs code per request cannot host them.
 
 **Outbound SMTP is blocked below the Pro plan** — ports 25, 465, 587 and 2525.
 Packets are dropped rather than refused, so a mail library waits out its full
-timeout and reports what looks like a broken mail server. This is why email
-goes through an HTTP API, and it rules out every SMTP-based provider while the
-service is on Hobby.
+timeout and reports what looks like a broken mail server. Nothing here sends
+mail any more, but the constraint stands for anything that might.
 
 ### Vercel
 
@@ -83,15 +82,22 @@ Axiom directly — [`@konstruct/logger`](#core-packages) wraps it.
 Writing and reading need different tokens: `AXIOM_TOKEN` ingests,
 `AXIOM_QUERY_TOKEN` runs the queries behind the console's logs screen.
 
-### Resend
+### Telegram
 
-Email over HTTPS, because of the Railway SMTP block above. The free plan allows
-3,000 emails a month, 100 a day and one custom domain — far above what a report
-per analysed match needs.
+The prediction report is posted to a channel by a bot, over the ordinary HTTPS
+Bot API. Free, with no quota worth tracking at this volume.
 
-**Until a domain is verified, two limits apply**: the sender has to be
-`onboarding@resend.dev`, and delivery only works to the address the Resend
-account was registered with. Verifying a domain lifts both and changes no code.
+**This replaced email because there is no domain to send from.** Every email
+provider requires a verified sending domain, and the deployment lives on
+`vercel.app` and `railway.app` subdomains whose DNS we do not control. A bot
+needs no domain, no DNS, no sending reputation, and cannot be spam-filtered.
+
+Setup is a bot from `@BotFather`, added to the channel as an administrator with
+permission to post. Its token and the channel id are the only configuration.
+
+Rich messages — typed blocks, so a table is a real table — arrived in Bot API
+10.1. The documented ceilings are 32,768 characters, 500 blocks, 16 levels of
+nesting, 50 media attachments and 20 table columns.
 
 ### GitHub Actions
 
@@ -120,7 +126,6 @@ already blocks a deploy, but code failing lint would deploy happily.
 | **@nestjs/schedule** | The workers. In-process intervals, not an external scheduler.     |
 | **mongoose**         | MongoDB models and schemas.                                       |
 | **zod**              | Validates environment variables at startup and input at the edge. |
-| **handlebars**       | Renders the report email.                                         |
 | **@axiomhq/js**      | Reads logs back for the console. Writing goes through the logger. |
 
 HTTP calls use the platform `fetch`, wrapped in `src/common/http.ts` for
@@ -152,8 +157,10 @@ know you are reversing something.
 
 - **No test runner.** Nothing is tested anywhere. This is the largest known gap
   in the repository, not a preference.
-- **No SMTP library.** See Railway above — nothing here can reach an SMTP port,
-  so email is an HTTP call like any other.
+- **No email at all.** No SMTP library, and no mail provider. The report goes
+  to Telegram instead — see above for why.
+- **No template engine.** The report is built as typed blocks in code.
+  Handlebars went with the HTML email it existed for.
 - **No HTTP client library.** `fetch` plus the shared wrapper covers it.
 - **No charting library.** The net worth graph is inline SVG.
 - **No UI component library.** Tailwind and hand-written components.

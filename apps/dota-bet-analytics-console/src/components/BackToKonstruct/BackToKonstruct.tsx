@@ -21,7 +21,7 @@ export function BackToKonstruct({ href = dashboardUrl() }: BackToKonstructProps)
         <span className="rounded-[1px] bg-konstruct-mark-dim" />
         <span className="rounded-[1px] bg-konstruct-mark" />
       </span>
-      Konstruct
+      <span className="max-sm:hidden">Konstruct</span>
     </a>
   );
 }

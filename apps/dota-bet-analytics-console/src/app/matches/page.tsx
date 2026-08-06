@@ -34,7 +34,9 @@ function MatchRow({ match }: { match: LiveMatch }) {
         </div>
       </div>
 
-      <div className="text-right text-xs text-faint">
+      {/* Under the team names on a phone, aligned with them rather than
+          against the right edge where it reads as a separate column. */}
+      <div className="text-right text-xs text-faint max-sm:ml-[22px] max-sm:text-left">
         {match.streamDelaySeconds !== undefined && (
           <div>delay {Math.round(match.streamDelaySeconds / 60)}m</div>
         )}

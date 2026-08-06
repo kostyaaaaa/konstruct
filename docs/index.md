@@ -29,7 +29,7 @@ Claude's context for the whole session, so keep imports focused and short.
   an app's own document is read. One app uses NestJS today.
 - [project/infrastructure.md](project/infrastructure.md) — every external
   service and core dependency, across all apps: hosting, database, secrets,
-  logs, email, CI, and what is deliberately not used. Read it when adding a
+  logs, notifications, CI, and what is deliberately not used. Read it when adding a
   service or a dependency, or when something external is misbehaving. The
   decisions it records are summarised in `overview.md`, which is imported; the
   detail is not carried in context.

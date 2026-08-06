@@ -13,8 +13,15 @@ export class PredictionPlayer {
   @Prop({ required: true })
   accountId!: number;
 
+  /** Steam display name — whatever the account is called. Often not the
+      name the player is known by. */
   @Prop()
   personaName?: string;
+
+  /** The competitive nickname, when the account is a registered professional.
+      Absent for everyone else, which is normal in a tier 2 league. */
+  @Prop()
+  proName?: string;
 
   @Prop({ required: true })
   heroId!: number;
@@ -62,6 +69,16 @@ export class Prediction {
 
   @Prop()
   direTeamName?: string;
+
+  /**
+   * The broadcast delay on this match, in seconds, as Valve reported it.
+   *
+   * Stored because it says how stale the prediction already was when it was
+   * made: the scoreboard arrives on the delayed timeline, so a 900-second
+   * league gives us the draft a quarter of an hour after it happened.
+   */
+  @Prop()
+  streamDelaySeconds?: number;
 
   @Prop({ required: true })
   radiantScore!: number;

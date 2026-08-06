@@ -33,11 +33,11 @@ user navigates into distinct apps.
 - **Backend framework** — Express or NestJS, chosen per app and recorded in that
   app's document. [Rules](../rules/backend.md), [NestJS rules](../rules/nestjs.md).
 - **Hosting** — Vercel for Next.js apps, Railway for anything that must stay
-  alive. Railway blocks outbound SMTP below its Pro plan, which is why email
-  goes over an HTTP API.
+  alive.
 - **Database** — MongoDB Atlas, one cluster, dev and prod split by database
   name.
-- **Email** — Resend, over its HTTP API. No SMTP.
+- **Notifications** — a Telegram bot, not email. No project domain exists, and
+  every mail provider requires a verified sending domain.
 - **Frontend stack** — Next.js 16 App Router, React 19, TypeScript, Tailwind
   CSS 4. Both frontends use it.
 
@@ -86,7 +86,7 @@ Three apps, all deployed.
 - `konstruct-dashboard` — the shell, on Vercel. Lists a static set of apps and
   filters them by name.
 - `dota-bet-analytics` — NestJS API and in-process workers, on Railway. Polls
-  live professional matches, archives snapshots, scores predictions and emails
-  a report.
+  live professional matches, archives snapshots, scores predictions and posts
+  a report to Telegram.
 - `dota-bet-analytics-console` — its frontend, on Vercel. Worker control, live
   matches, predictions and accuracy, and recent logs.

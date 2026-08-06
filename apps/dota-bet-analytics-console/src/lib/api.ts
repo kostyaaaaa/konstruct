@@ -73,6 +73,8 @@ export interface LiveMatch {
 export interface PredictionPlayer {
   accountId: number;
   personaName?: string;
+  /** Competitive nickname, when the player is a registered professional. */
+  proName?: string;
   heroId: number;
   heroName?: string;
   heroImageUrl?: string;
@@ -92,6 +94,8 @@ export interface Prediction {
   favoured: 'radiant' | 'dire' | null;
   margin: number;
   marginPercent: number;
+  /** Broadcast delay on the match, in seconds. */
+  streamDelaySeconds?: number;
   radiantPlayers: PredictionPlayer[];
   direPlayers: PredictionPlayer[];
   complete: boolean;

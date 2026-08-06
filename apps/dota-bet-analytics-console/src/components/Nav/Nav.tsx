@@ -16,14 +16,14 @@ export function Nav({ items }: NavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-6.5">
+    <nav className="flex items-center gap-6.5 max-sm:gap-3.5">
       {items.map((item) => {
         const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`border-b-2 pb-[19px] text-[13.5px] transition-colors ${
+            className={`border-b-2 pb-[19px] text-[13.5px] transition-colors max-sm:pb-[17px] max-sm:text-[12.5px] ${
               active ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >

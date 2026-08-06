@@ -72,7 +72,22 @@ export function TeamRoster({ side, teamName, score, players, favoured }: TeamRos
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm">{player.heroName ?? `Hero ${player.heroId}`}</div>
               <div className="flex items-center gap-2 truncate text-xs text-faint">
-                {player.personaName ?? 'anonymous'}
+                {/* The broadcast name where we have one. `personaName` is only
+                    the Steam display name, which is rarely what a player is
+                    called — and most tier 2 players are not in the pro list at
+                    all, so the fallback is the normal case, not an error. */}
+                {player.proName ? (
+                  <Hint
+                    text={`Competitive nickname. This account's Steam name is "${player.personaName ?? 'unknown'}".`}
+                    className="text-muted"
+                  >
+                    {player.proName}
+                  </Hint>
+                ) : (
+                  <span title="Steam display name. This player is not in OpenDota's professional list, so no competitive nickname is known.">
+                    {player.personaName ?? 'anonymous'}
+                  </span>
+                )}
                 {/* On the player's line, not the hero's — it describes the
                     person, and beside a hero name it reads as a hero stat. */}
                 {player.leaderboardRank && (
