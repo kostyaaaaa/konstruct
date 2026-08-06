@@ -1,6 +1,6 @@
 import { runBackfill } from './actions';
 import { Panel } from '@/components/Panel';
-import { Stat } from '@/components/Stat';
+import { Stat, StatGrid } from '@/components/Stat';
 import { WorkerRow } from '@/components/WorkerRow';
 import { api } from '@/lib/api';
 
@@ -29,7 +29,7 @@ function pollTone(lastSuccessAt: string | null, paused: boolean) {
     return 'bad' as const;
   }
   const seconds = (Date.now() - new Date(lastSuccessAt).getTime()) / 1000;
-  return seconds > 60 ? ('bad' as const) : ('ok' as const);
+  return seconds > 60 ? ('bad' as const) : ('accent' as const);
 }
 
 export default async function ControlPage() {
@@ -45,21 +45,21 @@ export default async function ControlPage() {
       <Panel title="API unreachable">
         <p className="text-sm text-muted">
           The console cannot reach the API. Check that{' '}
-          <code className="font-mono text-ink">dota-bet-analytics</code> is running on its port and
-          that <code className="font-mono text-ink">API_URL</code> is set.
+          <code className="mono text-ink">dota-bet-analytics</code> is running and that{' '}
+          <code className="mono text-ink">API_URL</code> is set.
         </p>
       </Panel>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Panel title="Discovery">
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+    <>
+      <Panel title="Discovery" flush>
+        <StatGrid>
           <Stat
             label="Last poll"
             value={ago(discovery.lastSuccessAt)}
-            hint={discovery.paused ? 'worker paused' : 'every 10s'}
+            hint={discovery.paused ? 'Paused' : 'Last poll'}
             tone={pollTone(discovery.lastSuccessAt, discovery.paused)}
           />
           <Stat
@@ -71,19 +71,20 @@ export default async function ControlPage() {
           <Stat
             label="Last error"
             value={discovery.lastError ? 'yes' : 'none'}
-            hint={discovery.lastError ?? undefined}
-            tone={discovery.lastError ? 'bad' : 'ok'}
+            hint={discovery.lastError ?? 'Last error'}
+            tone={discovery.lastError ? 'bad' : 'muted'}
           />
-        </div>
+        </StatGrid>
       </Panel>
 
       <Panel
         title="Backfill"
+        flush
         action={
           <form action={runBackfill}>
             <button
               type="submit"
-              className="rounded-md border border-line-strong px-3 py-1.5 text-sm text-muted transition-colors hover:text-ink"
+              className="rounded-md border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:border-line-strong hover:text-ink"
             >
               Run now
             </button>
@@ -91,19 +92,19 @@ export default async function ControlPage() {
         }
       >
         {backfill ? (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <Stat label="Last run" value={ago(backfill.lastRunAt)} hint="every 5m" />
-            <Stat label="Resolved" value={backfill.lastResolved} hint="last run" />
+          <StatGrid>
+            <Stat label="Last run" value={ago(backfill.lastRunAt)} tone="muted" />
+            <Stat label="Resolved" value={backfill.lastResolved} />
             <Stat label="Awaiting result" value={backfill.lastPending} />
             <Stat
               label="Last error"
               value={backfill.lastError ? 'yes' : 'none'}
-              hint={backfill.lastError ?? undefined}
-              tone={backfill.lastError ? 'bad' : 'ok'}
+              hint={backfill.lastError ?? 'Last error'}
+              tone={backfill.lastError ? 'bad' : 'muted'}
             />
-          </div>
+          </StatGrid>
         ) : (
-          <p className="text-sm text-muted">Status unavailable.</p>
+          <p className="px-[18px] py-4 text-sm text-muted">Status unavailable.</p>
         )}
       </Panel>
 
@@ -111,7 +112,7 @@ export default async function ControlPage() {
         {workers.workers.map((worker) => (
           <WorkerRow key={worker.name} worker={worker} />
         ))}
-        <p className="mt-4 text-xs text-faint">
+        <p className="mt-3 text-xs text-faint">
           Pausing stops the work, not the process. The state is stored in the database, so it
           survives a restart.
         </p>
@@ -119,14 +120,15 @@ export default async function ControlPage() {
 
       {live && live.count > 0 && (
         <Panel title="Live now">
-          <ul className="space-y-2 text-sm">
+          <ul className="flex flex-col gap-2 text-sm">
             {live.matches.map((match) => (
               <li key={match.matchId} className="flex justify-between gap-4">
                 <span>
-                  {match.radiantTeamName ?? '?'} <span className="text-faint">vs</span>{' '}
-                  {match.direTeamName ?? '?'}
+                  <span className="text-radiant">{match.radiantTeamName ?? 'Radiant'}</span>
+                  <span className="px-2 text-faint">vs</span>
+                  <span className="text-dire">{match.direTeamName ?? 'Dire'}</span>
                 </span>
-                <span className="font-mono text-xs text-faint">
+                <span className="mono text-xs text-faint">
                   {match.radiantSeriesWins}–{match.direSeriesWins}
                 </span>
               </li>
@@ -134,6 +136,6 @@ export default async function ControlPage() {
           </ul>
         </Panel>
       )}
-    </div>
+    </>
   );
 }

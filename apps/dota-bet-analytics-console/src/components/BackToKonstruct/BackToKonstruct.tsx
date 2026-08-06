@@ -3,24 +3,25 @@ import { dashboardUrl } from '@/lib/links';
 import type { BackToKonstructProps } from './types';
 
 /**
- * The Konstruct mark, linking back to the dashboard.
+ * The Konstruct mark and wordmark, linking back to the dashboard.
  *
- * The same 2x2 grid the dashboard uses for itself, built from divs so it picks
- * up this app's tokens rather than carrying its own colours. Recognisable as
- * "back to the platform" without needing a label.
+ * Smaller and quieter than the console's own mark beside it: this is the way
+ * out, not the identity of the page you are on.
  */
 export function BackToKonstruct({ href = dashboardUrl() }: BackToKonstructProps) {
   return (
     <a
       href={href}
       title="Back to Konstruct"
-      aria-label="Back to Konstruct"
-      className="grid size-8 shrink-0 grid-cols-2 grid-rows-2 gap-[2px] rounded-lg bg-konstruct p-1.5 opacity-80 transition-opacity hover:opacity-100"
+      className="flex items-center gap-2 text-[12.5px] text-dim no-underline transition-colors hover:text-ink"
     >
-      <span className="rounded-[1px] bg-konstruct-mark" />
-      <span className="rounded-[1px] bg-konstruct-mark-dim" />
-      <span className="rounded-[1px] bg-konstruct-mark-dim" />
-      <span className="rounded-[1px] bg-konstruct-mark" />
+      <span className="grid size-4 grid-cols-2 grid-rows-2 gap-[1.5px] rounded-[3px] bg-konstruct p-[2.5px]">
+        <span className="rounded-[1px] bg-konstruct-mark" />
+        <span className="rounded-[1px] bg-konstruct-mark-dim" />
+        <span className="rounded-[1px] bg-konstruct-mark-dim" />
+        <span className="rounded-[1px] bg-konstruct-mark" />
+      </span>
+      Konstruct
     </a>
   );
 }

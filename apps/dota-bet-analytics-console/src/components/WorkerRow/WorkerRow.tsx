@@ -12,29 +12,33 @@ export function WorkerRow({ worker }: WorkerRowProps) {
   const running = worker.status === 'running';
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-0">
+    <div className="flex items-center justify-between gap-4 border-b border-line/60 py-3 last:border-0">
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span
-            className={`inline-block size-2 rounded-full ${running ? 'bg-ok' : 'bg-warn'}`}
+            className={`inline-block size-1.5 rounded-full ${running ? 'bg-ok' : 'bg-warn'}`}
             aria-hidden
           />
-          <span className="font-mono text-sm">{worker.name}</span>
+          <span className="mono text-[13px]">{worker.name}</span>
+          <span className={`text-xs ${running ? 'text-ok' : 'text-warn'}`}>
+            {running ? 'running' : 'paused'}
+          </span>
         </div>
-        <div className="mt-0.5 pl-4 text-xs text-faint">
-          {running ? 'running' : 'paused'}
-          {worker.lastChangedAt && ` · changed ${new Date(worker.lastChangedAt).toLocaleString()}`}
-        </div>
+        {worker.lastChangedAt && (
+          <div className="mt-0.5 pl-4 text-xs text-faint">
+            changed {new Date(worker.lastChangedAt).toLocaleString()}
+          </div>
+        )}
       </div>
 
       <form action={running ? pauseWorker : resumeWorker}>
         <input type="hidden" name="name" value={worker.name} />
         <button
           type="submit"
-          className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+          className={`rounded-md border px-3 py-1 text-xs transition-colors ${
             running
-              ? 'border-warn/40 bg-warn-tint text-warn hover:border-warn/70'
-              : 'border-ok/40 bg-ok-tint text-ok hover:border-ok/70'
+              ? 'border-line text-muted hover:border-warn/60 hover:text-warn'
+              : 'border-ok/40 text-ok hover:border-ok'
           }`}
         >
           {running ? 'Pause' : 'Resume'}

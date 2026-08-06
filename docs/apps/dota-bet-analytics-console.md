@@ -102,6 +102,25 @@ degrades a single panel rather than taking down the page.
 play, and plotting against wall clock would stretch a pause into a slope that
 never happened. It is inline SVG — no charting library.
 
+### The console mark exists in three files, on purpose
+
+The hexagon-with-a-check appears in the header, on the dashboard's card for this
+app, and as the browser tab icon. Each place needs a different file:
+
+| File                                                 | Used as                    | Colour         |
+| ---------------------------------------------------- | -------------------------- | -------------- |
+| `src/assets/icons/console.svg`                       | the header, through `Icon` | `currentColor` |
+| `apps/konstruct-dashboard/src/assets/icons/dota.svg` | the dashboard card         | `currentColor` |
+| `src/app/icon.svg`                                   | favicon and tab icon       | hard-coded hex |
+
+The first two are the same geometry in two apps because an app cannot import
+another app's assets. The favicon is separate because it renders outside the
+page: it has no CSS and cannot read the `oklch` tokens, so its canvas and accent
+colours are written as hex and have to be kept in step with `globals.css` by
+hand.
+
+Changing the mark means editing all three.
+
 ### The logs screen holds no token
 
 It calls the API's `/logs`, and the API queries Axiom with `AXIOM_QUERY_TOKEN`.

@@ -91,23 +91,23 @@ export default async function LogsPage({
         <p className="text-sm text-muted">{logs.reason}</p>
       ) : logs.rows.length === 0 ? (
         <p className="text-sm text-muted">
-          Nothing at <code className="font-mono">{level}</code> or above
+          Nothing at <code className="mono">{level}</code> or above
           {env !== 'all' && (
             <>
               {' '}
-              from <code className="font-mono">{env}</code>
+              from <code className="mono">{env}</code>
             </>
           )}{' '}
           in the last 24 hours.
         </p>
       ) : (
-        <ul className="space-y-1 font-mono text-xs">
+        <ul className="space-y-1 mono text-xs">
           {logs.rows.map((row, index) => {
             const when = stamp(row.time);
             return (
               <li
                 key={`${row.time}-${index}`}
-                className="flex gap-3 border-b border-line/50 py-1.5"
+                className="flex gap-3 border-b border-line/40 py-1.5"
               >
                 <span className="w-12 shrink-0 text-faint">{when.day}</span>
                 <span className="shrink-0 text-faint">{when.time}</span>

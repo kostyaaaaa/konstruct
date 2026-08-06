@@ -11,7 +11,7 @@ function MatchRow({ match }: { match: LiveMatch }) {
   return (
     <Link
       href={`/matches/${match.matchId}`}
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3 transition-colors last:border-0 hover:bg-card"
+      className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 py-3 transition-colors last:border-0 hover:bg-field"
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
@@ -27,7 +27,7 @@ function MatchRow({ match }: { match: LiveMatch }) {
             <span className="text-dire">{match.direTeamName ?? 'Dire'}</span>
           </span>
         </div>
-        <div className="mt-0.5 pl-4 font-mono text-xs text-faint">
+        <div className="mt-0.5 pl-4 mono text-xs text-faint">
           {match.matchId}
           {SERIES_LABEL[match.seriesType] && ` · ${SERIES_LABEL[match.seriesType]}`}
           {` · series ${match.radiantSeriesWins}–${match.direSeriesWins}`}

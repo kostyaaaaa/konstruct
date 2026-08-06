@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 import { BackToKonstruct } from '@/components/BackToKonstruct';
+import { Icon } from '@/components/Icon';
+import { Nav } from '@/components/Nav';
 
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'dota-bet-analytics console',
+  title: 'Dota bet analytics',
   description: 'Worker control, live matches, predictions and accuracy.',
 };
 
-const nav = [
+const NAV = [
   { href: '/', label: 'Control' },
   { href: '/matches', label: 'Matches' },
   { href: '/predictions', label: 'Predictions' },
@@ -21,29 +22,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <header className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-5">
-            <div className="flex items-center gap-3">
-              <BackToKonstruct />
-              <div>
-                <h1 className="text-lg font-semibold tracking-tight">dota-bet-analytics</h1>
-                <p className="text-sm text-faint">console</p>
-              </div>
+        {/* Sticky, because the worker status is the reason you opened this. */}
+        <header className="sticky top-0 z-10 flex h-15 items-center justify-between gap-6 border-b border-line bg-surface px-7">
+          <div className="flex items-center gap-4">
+            <BackToKonstruct />
+
+            {/* Separates leaving from being here. */}
+            <div className="h-[22px] w-px bg-line" />
+
+            <div className="flex items-center gap-2.5">
+              <Icon name="console" size={20} className="text-accent" />
+              <span className="text-[15px] font-semibold tracking-[-0.01em]">
+                Dota bet analytics
+              </span>
             </div>
-            <nav className="flex gap-1">
-              {nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-md px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </header>
+          </div>
+
+          <Nav items={NAV} />
+        </header>
+
+        <main className="mx-auto flex max-w-[1160px] flex-col gap-[18px] px-7 pt-7 pb-20">
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );

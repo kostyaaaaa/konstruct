@@ -1,16 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!--
-    The console mark: the same tapered diagonal and corner wedges as the Dota
-    card on the dashboard, on the console's own dark canvas.
+    The console mark: a hexagon with a check, matching the header.
 
-    Deliberately simpler than `dota.svg` — the frame and thin details of that
-    icon disappear at 16px, which is the size that actually matters in a
-    browser tab.
+    Colours are inlined as hex because a favicon renders outside the page's
+    CSS and cannot read the oklch tokens. Keep them in step with the canvas
+    and accent tokens in globals.css.
   -->
-  <rect width="32" height="32" rx="7" fill="#15181f" />
-  <!-- tapered band, narrow top-left to wide bottom-right -->
-  <path d="M9.6 7.4 24 20.6 20.4 24.4 7.6 8.8Z" fill="#f75d59" />
-  <!-- corner wedges, mirrored across the diagonal -->
-  <path d="M20.4 6.2 25.8 11.6 21.9 12.9 19.1 10.1Z" fill="#f75d59" />
-  <path d="M6.2 20.4 11.6 25.8 12.9 21.9 10.1 19.1Z" fill="#f75d59" />
+  <rect width="32" height="32" rx="7" fill="#0a0b0e" />
+  <g transform="translate(4 4)" fill="none" stroke="#b48df4" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2 21 7 21 17 12 22 3 17 3 7Z" />
+    <path d="M8 11 11 14 16 8" />
+  </g>
 </svg>

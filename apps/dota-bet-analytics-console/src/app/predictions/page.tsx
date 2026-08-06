@@ -76,7 +76,7 @@ export default async function PredictionsPage({
               <li key={prediction.matchId}>
                 <Link
                   href={`/matches/${prediction.matchId}`}
-                  className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3 transition-colors last:border-0 hover:bg-card"
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-line/60 py-3 transition-colors last:border-0 hover:bg-field"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm">
@@ -92,7 +92,7 @@ export default async function PredictionsPage({
                         {prediction.direTeamName ?? 'Dire'}
                       </span>
                     </div>
-                    <div className="mt-0.5 font-mono text-xs text-faint">
+                    <div className="mt-0.5 mono text-xs text-faint">
                       {prediction.radiantScore} – {prediction.direScore} ·{' '}
                       {prediction.marginPercent}% margin
                       {!prediction.complete && <span className="text-warn"> · incomplete</span>}

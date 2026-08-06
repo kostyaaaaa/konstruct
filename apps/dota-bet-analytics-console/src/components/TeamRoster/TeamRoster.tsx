@@ -10,7 +10,7 @@ export function TeamRoster({ side, teamName, score, players, favoured }: TeamRos
   const accent = side === 'radiant' ? 'text-radiant' : 'text-dire';
 
   return (
-    <div className="rounded-lg border border-line bg-card p-4">
+    <div className="rounded-lg border border-line bg-card/60 p-4">
       <header className="mb-3 flex items-baseline justify-between gap-3">
         <h3 className={`font-medium ${accent}`}>
           {teamName ?? (side === 'radiant' ? 'Radiant' : 'Dire')}

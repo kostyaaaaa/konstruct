@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Console for dota-bet-analytics \u2014 worker control, live matches, predictions and accuracy.",
+  "description": "Console for dota-bet-analytics — worker control, live matches, predictions and accuracy.",
   "scripts": {
     "dev": "infisical run --path=/dota-bet-analytics-console -- next dev",
     "build": "next build",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@konstruct/eslint-config": "workspace:*",
     "@konstruct/tsconfig": "workspace:*",
+    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
