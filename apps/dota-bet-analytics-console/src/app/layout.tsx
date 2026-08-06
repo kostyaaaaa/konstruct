@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { BackToKonstruct } from '@/components/BackToKonstruct';
+
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,9 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <header className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-5">
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">dota-bet-analytics</h1>
-              <p className="text-sm text-faint">console</p>
+            <div className="flex items-center gap-3">
+              <BackToKonstruct />
+              <div>
+                <h1 className="text-lg font-semibold tracking-tight">dota-bet-analytics</h1>
+                <p className="text-sm text-faint">console</p>
+              </div>
             </div>
             <nav className="flex gap-1">
               {nav.map((item) => (

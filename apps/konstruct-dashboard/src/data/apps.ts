@@ -37,7 +37,7 @@ export const apps: PlatformApp[] = [
     description: 'Live tier 1-2 Dota 2 match tracking, predictions and their accuracy.',
     href: {
       dev: 'http://localhost:4000',
-      prod: 'https://konstruct-dota-bet-analytics-consol.vercel.app',
+      prod: 'https://dota-bet-analytics-console.vercel.app',
     },
     icon: 'dota',
   },

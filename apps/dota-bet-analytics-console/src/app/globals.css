@@ -27,6 +27,12 @@
   --color-bad: oklch(68% 0.19 25);
   --color-bad-tint: oklch(32% 0.08 25);
 
+  /* The Konstruct mark on the back link — the platform's brand, not this
+     app's, so it reads as "out of here" rather than part of the console. */
+  --color-konstruct: oklch(52% 0.1 152);
+  --color-konstruct-mark: oklch(98% 0.02 152);
+  --color-konstruct-mark-dim: oklch(85% 0.05 152);
+
   /* Sides */
   --color-radiant: oklch(72% 0.16 155);
   --color-dire: oklch(68% 0.19 25);
