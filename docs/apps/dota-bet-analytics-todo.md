@@ -95,10 +95,12 @@ poll retries and scores it as soon as the heroes appear.
 
 No decision made. The options:
 
-- **Accept it**, and make the staleness visible — show the delay next to the
-  prediction so the reader knows how old the pick already is when it arrives.
+- **Accept it**, and make the staleness visible. **Partly done already** — the
+  delay is stored on the prediction and shown in the Telegram report's footer
+  and on the console's match page. Accepting it is now the default by inaction;
+  what is left is deciding whether that is enough.
 - **Weight by delay**, treating a low-delay league's prediction as worth more
-  than a high-delay one's.
+  than a high-delay one's. Nothing built.
 - **Find the draft elsewhere.** ~~OpenDota~~ — checked and ruled out, below.
 
 ### OpenDota cannot supply the draft any earlier
