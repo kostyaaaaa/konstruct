@@ -1,0 +1,31 @@
+{
+  "name": "dota-bet-analytics-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Console for dota-bet-analytics \u2014 worker control, live matches, predictions and accuracy.",
+  "scripts": {
+    "dev": "infisical run --path=/dota-bet-analytics-console -- next dev",
+    "build": "next build",
+    "start": "infisical run --path=/dota-bet-analytics-console -- next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.2.12",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@konstruct/eslint-config": "workspace:*",
+    "@konstruct/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "eslint": "^9.39.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}

@@ -52,6 +52,30 @@ The hook is installed by the `prepare` script, which pnpm runs on install.
 The packages hold the global behavior; an app overrides locally only what it
 genuinely needs.
 
+TypeScript layers the same way, through `@konstruct/tsconfig`:
+
+| Config      | For                                                     |
+| ----------- | ------------------------------------------------------- |
+| `base.json` | Every app. Strictness and the rules that never differ.  |
+| `nest.json` | NestJS services. Decorator metadata, nodenext modules.  |
+| `next.json` | Next.js apps. DOM lib, JSX, bundler resolution, noEmit. |
+
+An app extends one of these and overrides only what its own layout forces —
+`outDir`, `rootDir`, `paths`:
+
+```json
+{
+  "extends": "@konstruct/tsconfig/nest.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*.ts"]
+}
+```
+
+A single config for every app is not possible: a Nest service must emit
+JavaScript and decorator metadata, while a Next app emits nothing and needs
+DOM types. Those are genuine conflicts, not preferences. Everything that is
+not a genuine conflict lives in `base.json`.
+
 ```js
 // apps/<app>/eslint.config.js — later entries win
 import base from '@konstruct/eslint-config/base'
@@ -69,10 +93,21 @@ package instead. Framework rule sets become new exports of
 | Export   | For                                                        |
 | -------- | ---------------------------------------------------------- |
 | `./base` | Any package. JavaScript + TypeScript, framework-agnostic.  |
+| `./nest` | NestJS apps. Layers on `./node`, plus the decorator fixes. |
 | `./next` | Next.js apps. Next rules, rules of hooks, browser globals. |
-| `./node` | Node services and workers. CommonJS `.js`, Node globals.   |
+| `./node` | Node services and workers. ESM `.js`, Node globals.        |
 
 Add `./react` and the rest the same way.
+
+**`./nest` exists for a reason worth knowing.** `consistent-type-imports` wants
+`import type` for anything used only as a type — and every injected service
+looks that way, because it appears only as a constructor parameter type. But
+NestJS resolves injection from `emitDecoratorMetadata`, which needs the class's
+**value** at runtime. `import type` erases it, the metadata degrades to
+`Function`, and the container fails at startup with
+`UnknownDependenciesException`. The code still compiles, so the rule's autofix
+silently breaks dependency injection across a whole app. `./nest` turns that
+rule off.
 
 Every app in this repo is ESM (`"type": "module"`), so `eslint.config.js` works
 everywhere. If an app ever has to be CommonJS, its config file must be named

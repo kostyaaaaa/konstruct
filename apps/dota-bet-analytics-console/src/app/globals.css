@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Surfaces — darker than the dashboard, because this is a control room */
+  --color-canvas: oklch(21% 0.015 265);
+  --color-surface: oklch(25% 0.018 265);
+  --color-card: oklch(27% 0.02 265);
+  --color-field: oklch(31% 0.022 265);
+
+  /* Lines */
+  --color-line: oklch(35% 0.02 265);
+  --color-line-strong: oklch(46% 0.03 265);
+
+  /* Text */
+  --color-ink: oklch(95% 0.008 265);
+  --color-muted: oklch(70% 0.015 265);
+  --color-faint: oklch(56% 0.015 265);
+
+  /* State */
+  --color-ok: oklch(72% 0.16 155);
+  --color-ok-tint: oklch(32% 0.06 155);
+  --color-warn: oklch(80% 0.15 85);
+  --color-warn-tint: oklch(33% 0.06 85);
+  --color-bad: oklch(68% 0.19 25);
+  --color-bad-tint: oklch(32% 0.08 25);
+
+  /* Sides */
+  --color-radiant: oklch(72% 0.16 155);
+  --color-dire: oklch(68% 0.19 25);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: oklch(40% 0.08 265);
+  }
+}

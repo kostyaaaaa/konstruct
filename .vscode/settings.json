@@ -4,7 +4,8 @@
     "apps",
     "packages",
     "konstruct-dashboard",
-    "dota-bet-analytics"
+    "dota-bet-analytics",
+    "dota-bet-analytics-console"
   ],
 
   "editor.formatOnSave": true,
@@ -34,6 +35,8 @@
     "tseslint",
     "Turborepo",
     "dota",
+    "vercel",
+    "AirTunes",
     "infisical",
     "axiom",
     "axiomhq",

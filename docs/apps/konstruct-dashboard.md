@@ -78,12 +78,23 @@ integration.
 
 ## Notes
 
-### `href` is deliberately opaque
+### `href` is per environment, and still opaque
 
-Each app's `href` is just a string. Today apps are separate deployments reached
-by their own URL. If routing is ever consolidated under one domain — Next.js
-rewrites, multi-zones, or Vercel Microfrontends — the cards do not change, only
-the values do. Nothing else in the dashboard assumes where an app lives.
+Each app carries a map of environment to URL, not a single string, because an
+app lives on localhost in dev and somewhere else in prod. `src/app/page.tsx`
+resolves it against `ENV` on the server, so the browser only ever receives the
+one URL that applies.
+
+The values stay opaque. If routing is ever consolidated under one domain —
+Next.js rewrites, multi-zones, or Vercel Microfrontends — only the values
+change.
+
+**An app with no URL for the current environment is still listed**, as a card
+that is not a link and says "Not deployed yet". A card that looks clickable and
+goes nowhere is worse than one that admits it.
+
+The page is `force-dynamic`: `ENV` arrives at run time from Infisical, so a
+static build would freeze whichever environment happened to build it.
 
 ### One client component
 

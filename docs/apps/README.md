@@ -31,15 +31,30 @@ listing `apps/*`.
 
 Every app needs a `dev` script, because that is what `pnpm dev` runs. If it
 serves HTTP, **give it its own port through a `PORT` variable in Infisical**, so
-several apps can run at once. Next.js and most servers read `PORT` themselves,
-so the script needs no `--port` flag:
+several apps can run at once. Next.js and Nest both read `PORT` themselves, so
+the script needs no `--port` flag:
 
 ```json
 { "dev": "infisical run --path=/<app-name> -- next dev" }
 ```
 
-Ports in use: `3000` konstruct-dashboard. `dota-bet-analytics` binds nothing —
-it is a worker, and a worker's `dev` script just starts the process.
+**Ports follow a pattern.** Each product gets a thousand-block. Inside it, the
+frontend takes `X000` and its backend takes `X001`:
+
+| Port   | App                        |
+| ------ | -------------------------- |
+| `3000` | konstruct-dashboard        |
+| `4000` | dota-bet-analytics-console |
+| `4001` | dota-bet-analytics         |
+
+A product with no frontend still takes the `X001` slot, so the pairing stays
+readable. A worker that binds nothing needs no `PORT` at all.
+
+**Avoid the 5000 and 7000 blocks on macOS.** AirPlay Receiver — the
+`ControlCenter` process — listens on both, and a clash shows up as a confusing
+`403` from `AirTunes` rather than a connection error. Because the port is an
+Infisical variable rather than a flag, moving a product to a free block is two
+`infisical secrets set` calls and no code change.
 
 The app is ESM: `"type": "module"`, `import` everywhere, and `.js` on relative
 imports.
@@ -105,13 +120,26 @@ Add an entry to [`scripts/apps.config.js`](../../scripts/apps.config.js):
 ```js
 export const apps = [
   { name: 'konstruct-dashboard', aliases: ['dashboard'] },
-  { name: 'dota-bet-analytics', aliases: ['dota'] },
+  { name: 'dota-bet-analytics', aliases: ['dota-server'] },
+  { name: 'dota-bet-analytics-console', aliases: ['dota-console'] },
 ];
+
+// A product split across several apps gets a group, so one name starts it all.
+export const groups = {
+  dota: ['dota-bet-analytics', 'dota-bet-analytics-console'],
+};
 ```
 
 `name` matches the workspace package name; `aliases` are the short names
 `pnpm dev` also accepts. Give every app an alias — this file is the only place
 that knows apps exist.
+
+**A frontend and its backend get a group.** You work on the product, not on one
+half of it, so `pnpm dev dota` starts both and the individual aliases stay for
+when you want one. A group name must not collide with an app name or alias —
+`dev.js` refuses to start if it does, rather than silently picking one.
+
+`pnpm dev` with no arguments runs every app.
 
 ### 4. Add it to the dashboard
 

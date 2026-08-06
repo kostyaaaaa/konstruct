@@ -1,157 +1,313 @@
 # dota-bet-analytics
 
-A background worker. It watches live Dota 2 professional matches, scores both
-teams, and emails a report for each new match it finds.
+The backend. Discovers live tier 1–2 Dota 2 professional matches, snapshots
+them, scores both teams, and serves the result to
+[dota-bet-analytics-console](dota-bet-analytics-console.md).
+
+Everything described here works. [Current state](#current-state) lists what is
+verified and what is still only partly done.
 
 ## Purpose
 
-Betting support, for one reader. Every minute it asks the Dota API which matches
-are live. For a professional match it has not seen before, it builds a score for
-each side from how the ten players historically perform on the heroes they are
-currently playing, emails that as an HTML report, and stores the match.
+Betting analytics for professional Dota 2. It watches every tier 1 and tier 2
+match that is live right now, records what is happening in it, and produces a
+score for each side from how the ten players historically perform on the heroes
+they are playing.
 
-Later, a separate script fills in who actually won, which turns the stored
-matches into a record of how good the scoring is.
+The snapshot archive is the point. It cannot be recreated later, so collecting
+it correctly matters more than anything built on top of it.
 
 ## Entry point
 
-None. This app has no HTTP server and no UI — it is a cron process, not a site.
+`http://localhost:4001` in dev. An HTTP API, not a page — the console is the
+thing you look at.
 
-The dashboard card points at `#` for that reason. There is nothing to open in a
-browser, and there will not be until the app grows an interface.
+- `GET /health` — liveness. Touches nothing external, so a failure means the
+  process is gone rather than that a query was slow.
+- `GET /workers` — every worker and whether it is running or paused.
+- `POST /workers/:name/pause` and `POST /workers/:name/resume` — the control
+  screen. An unknown name is a 404, not a silently created row.
+- `GET /discovery/status` — worker health: paused, last poll, last success,
+  last error, how many games the feed returned, how many survived the tier
+  filter, and how many snapshots the last poll wrote.
+- `GET /matches/live` — the registry's currently live matches.
+- `GET /matches/recent` — the last 50 by most recently seen.
+- `GET /snapshots/:matchId/series` — trimmed time series for a graph: net
+  worth, score, both clocks. No raw payloads.
+- `GET /snapshots/:matchId` — full snapshots including the raw payload.
+- `GET /predictions` — the 50 most recent, full payload.
+- `GET /predictions/:matchId` — one prediction, enough to rebuild the whole
+  report as a page.
+- `GET /predictions/accuracy?minMarginPercent=N` — accuracy over settled
+  predictions. The threshold is a parameter, not a constant.
+- `GET /backfill/status` — when the winner backfill last ran and what it found.
+- `POST /backfill/run` — run a batch now instead of waiting for the tick.
+- `GET /logs?level=&service=&hours=&limit=` — recent events read back from
+  Axiom. Reports itself unavailable when no query token is configured.
 
 ## Owns
 
-- **The score.** `src/utils/getDotaMatchAnalytics.js` turns a live match into
-  two numbers, `radiantStats` and `direStats`. For each player it takes the win
-  rate on the hero they are playing and how high that hero sits in their most
-  played list, then weights them 80/20. This is the whole prediction.
-- **The match record.** One MongoDB collection, `Matches`, defined in
-  `src/models/matchesModel.js`: the two team names, the two scores, and
-  `winTeam`, which is empty until the update script fills it in.
-- **The report.** `src/templates/dotaReport.hbs`, a Handlebars template
-  rendered to HTML and sent by email.
-- **The hero list.** `src/constants/heroes.js`, a static copy of every Dota
-  hero with its id, name and portrait path. It is updated by hand when Valve
-  adds a hero.
+- **Match discovery.** Which professional matches are live, filtered to tier 1
+  and 2.
+- **The snapshot archive.** Append-only time-series of in-game state.
+- **The score.** Two numbers per match, radiant and dire, from player-hero win
+  rates weighted against hero familiarity.
+- **The email report.** A Handlebars template sent per newly analysed match.
 
 ## Uses
 
-- **Node, ESM.** `"type": "module"`, so every file uses `import`. Relative
-  imports carry the `.js` extension, which ESM requires.
-- **An external Dota API** at `DOTA_API_URL`, through four endpoints: `/live`,
-  `/matches/:id`, `/players/:id`, `/players/:id/heroes`. `src/api/` is a thin
-  axios wrapper per resource.
-- **MongoDB Atlas** through mongoose. The connection string is assembled from
-  four separate variables in `src/connectDB.js`.
-- **Gmail SMTP** through nodemailer, to send the report.
-- **node-cron** for the every-minute heartbeat.
-- `@konstruct/logger` for logging — `src/logger.js` creates the one instance the
-  app shares. Nothing is configured there; the dataset, token, region and
-  environment all arrive as variables.
-- `@konstruct/eslint-config/node` for linting; Prettier comes from the root.
+- **NestJS 11** and **TypeScript 7**, ESM. Nest's dependency injection needs
+  decorator metadata, so `experimentalDecorators` and `emitDecoratorMetadata`
+  are on in `tsconfig.json` — without them injection fails at runtime instead
+  of at compile time.
+- **MongoDB Atlas** through mongoose.
+- **Steam Web API** for live discovery — `GetLiveLeagueGames`, which is the only
+  free feed that actually covers the professional circuit.
+- **OpenDota** for league tier and post-match backfill. No key needed.
+- **`@konstruct/logger`** — `src/logger/` bridges Nest's own logger onto it, so
+  framework messages and application messages land in the same Axiom dataset
+  with `service: 'api'` attached.
+- `@konstruct/eslint-config/nest`; Prettier from the root. The `/nest` layer
+  exists because the default `consistent-type-imports` rule breaks Nest's
+  dependency injection — see [code-style.md](../rules/code-style.md).
 
 ## Run
 
-Secrets come from Infisical, so every script goes through `infisical run`. See
-[Configuration](#configuration) below for the one-time setup.
-
 ```bash
-pnpm dev dota                              # heartbeat under nodemon
-pnpm --filter dota-bet-analytics start     # heartbeat under plain node
-pnpm --filter dota-bet-analytics stats     # print prediction accuracy
-pnpm --filter dota-bet-analytics update    # backfill winners for stored matches
+pnpm dev dota-server                       # the API alone, watched
+pnpm dev dota                              # with the console
+pnpm --filter dota-bet-analytics build
+pnpm --filter dota-bet-analytics start
 pnpm --filter dota-bet-analytics lint
+pnpm --filter dota-bet-analytics typecheck
 ```
 
-`stats` and `update` are one-shot: they connect, do their work, close the
-connection, and flush the logger so the last events actually reach Axiom.
-
-The long-running heartbeat flushes on `SIGINT` and `SIGTERM` for the same
-reason.
+There is a build step: `dev` and `start` run `dist/main.js`, so `build` (or
+`build:watch`) has to have run first. Decorator metadata cannot be produced by
+Node's built-in type stripping, so the compile is not optional.
 
 ## Configuration
 
-Secrets live in the `Konstruct` Infisical project, in the
-**`/dota-bet-analytics`** folder, and are injected as environment variables.
-Nothing is read from a committed file.
+Secrets live in the `Konstruct` Infisical project, `/dota-bet-analytics`.
+Every variable is validated at startup by `src/config/env.schema.ts` — a
+missing one lists every problem at once and refuses to boot.
 
-Every script passes `--path=/dota-bet-analytics`, so the app only ever sees its
-own folder. The environment defaults to `dev`; add `--env=prod` to switch.
+**dev and prod are separate databases on the same Atlas cluster**, split by
+`DB_NAME`. One cluster keeps it inside the free tier; separate names stop local
+testing from writing fake matches and predictions into production, and from
+emailing reports about them.
 
-| Variable        | What it is                             |
-| --------------- | -------------------------------------- |
-| `ENV`           | `dev` or `prod` — tags every log event |
-| `DOTA_API_URL`  | Base URL of the Dota API               |
-| `DB_HOST`       | MongoDB Atlas host                     |
-| `DB_USER`       | MongoDB user                           |
-| `DB_PASSWORD`   | MongoDB password                       |
-| `DB_NAME`       | Database name                          |
-| `SMTP_EMAIL`    | Gmail account the report is sent from  |
-| `SMTP_PASSWORD` | App password for that account          |
-| `EMAIL`         | Address the report is sent to          |
-| `AXIOM_DATASET` | `dota-bet-analytics`                   |
-| `AXIOM_TOKEN`   | Ingest token                           |
-| `AXIOM_EDGE`    | Regional ingest host                   |
-
-`dev` and `prod` are populated. `staging` is empty; the app has never run there.
-
-There is no `.env` and no `dotenv`. Infisical is the only source, so a script
-run without `infisical run` starts with nothing configured.
-
-Setup is workspace-wide and done once from the repo root, not per app:
-see [Secrets](../../README.md#secrets).
+| Variable           | What it is                                                     |
+| ------------------ | -------------------------------------------------------------- |
+| `ENV`              | `dev` or `prod` — tags every log event                         |
+| `PORT`             | `4001`                                                         |
+| `DB_HOST`          | MongoDB Atlas host                                             |
+| `DB_USER`          | MongoDB user                                                   |
+| `DB_PASSWORD`      | MongoDB password                                               |
+| `DB_NAME`          | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
+| `STEAM_API_KEY`    | Steam Web API key, server-side only                            |
+| `OPENDOTA_API_URL` | Defaults to the public API; no key                             |
+| `SMTP_EMAIL`       | Gmail account the report is sent from                          |
+| `SMTP_PASSWORD`    | App password for that account                                  |
+| `EMAIL`            | Address the report is sent to                                  |
+| `AXIOM_DATASET`    | `dota-bet-analytics`                                           |
+| `AXIOM_TOKEN`      | Ingest token                                                   |
+| `AXIOM_EDGE`       | `us-east-1.aws.edge.axiom.co`                                  |
+| `LOG_LEVEL`        | Optional, defaults to `info`                                   |
 
 ## Deploy
 
-Not deployed. It has only ever run locally.
+**Railway.** It needs a host that keeps a process alive: the workers are
+in-process timers, so if nothing is running, nothing polls and nothing is
+archived.
 
-It cannot go on Vercel as-is: Vercel runs functions in response to requests, and
-this app is a process that must stay alive to hold its cron timer. It needs a
-host that runs a long-lived process — Railway, Fly.io, or a small VM — or it has
-to be rebuilt so that a hosted scheduler calls a function every minute instead of
-`node-cron` holding the timer itself.
+**Vercel cannot host this** — its functions are request-scoped and killed when
+the response is sent, so nothing holds a polling loop open, and Vercel Cron's
+one-minute floor is too coarse for snapshots. The console deploys to Vercel
+separately and calls this over HTTP.
+
+Settings for the Railway service:
+
+| Setting        | Value                                                                      |
+| -------------- | -------------------------------------------------------------------------- |
+| Root Directory | the repository root, **not** `apps/dota-bet-analytics`                     |
+| Build command  | `pnpm install --frozen-lockfile && pnpm --filter dota-bet-analytics build` |
+| Start command  | `pnpm --filter dota-bet-analytics start:prod`                              |
+| Health check   | `/health`                                                                  |
+
+The root directory has to be the repository root because this is a pnpm
+workspace: `@konstruct/logger` is linked from `packages/`, and an install run
+inside the app folder alone cannot resolve it.
+
+**`start:prod` exists because `start` will not work there.** `start` wraps the
+process in `infisical run`, which is a local-development convenience — the CLI
+is not installed in the container and does not need to be. Railway injects
+environment variables itself, so `start:prod` is a plain `node dist/main.js`.
+
+Every variable from [Configuration](#configuration) has to be set in Railway's
+own variables, with the **production** values. Railway sets `PORT` itself, so
+leave that one out and let it win.
+
+### Cost
+
+Measured at **55 MB resident** and near-zero CPU while polling. On Railway's
+per-second rates that is about **$1.40 a month** for an always-on service,
+inside the $5 Hobby plan with room to spare. The Free plan's $1 monthly credit
+is not enough for anything always-on.
+
+The database stays on Atlas rather than moving to Railway: a MongoDB service
+there would add roughly $3.90 a month and push the total past the included
+credit, and Atlas's free tier is a managed database with backups.
 
 ## Notes
 
-### The scoring is unvalidated
+### Discovery uses Steam, not OpenDota `/live`
 
-`stats` compares each stored prediction to the real winner, but only counts
-matches where one side's score beats the other's by more than 5%. Everything
-closer than that is left out of the total. Read the printed accuracy with that
-in mind — it describes the confident predictions, not all of them.
+OpenDota's `/live` is not a professional feed. It returns the top ongoing games
+by average MMR and spectator count, which during a big event happens to be full
+of tournament games — and the rest of the year is high-MMR pubs. Matches from
+Majors and league play never reliably appear.
 
-### Known weaknesses
+`GetLiveLeagueGames` returns every in-progress ticketed league match instead.
+The trade is the opposite problem: it returns far too much. A sample run gave
+49 live matches, of which 47 were amateur leagues.
 
-The code predates this repo. Logging, module format and configuration have been
-brought in line with the rules; the rest has not. These are the parts worth
-knowing about before changing anything:
+### Tier comes from OpenDota, and it is the whole filter
 
-- **Errors are swallowed.** Almost every function catches its own error, logs
-  it, and returns `undefined`. The caller cannot tell failure from an empty
-  result, so a failed API call silently becomes a report built from missing
-  data. This breaks [backend.md rule 3](../rules/backend.md#3-errors) and is the
-  biggest thing left.
-- **No retries and no rate limiting.** A match with ten players fires twenty API
-  calls at once, and a single failure is lost rather than retried.
-- **The heartbeat re-reads every stored match every minute** to check whether the
-  current live match is new, instead of querying for the one id.
-- **Overlapping runs are not guarded.** The cron fires every minute whether or
-  not the previous run has finished.
-- **`src/responseExamples/` is dead code** — five files of sample API payloads
-  that nothing imports. Useful as a reference for the shapes the Dota API
-  returns, which is the only reason they are still here.
+Valve's feed carries no tier. OpenDota's `/leagues` does — `premium` (tier 1),
+`professional` (tier 2), `excluded`, `amateur`. Joining the two and keeping only
+`premium` and `professional` cut that sample of 49 matches to 2.
 
-These are listed so nobody assumes they are deliberate. Fixing them is app work,
-not documentation work.
+This is why STRATZ is not a dependency. Tier was the only thing it was needed
+for, and OpenDota provides it without a token or a terms-of-service question
+about a betting-adjacent product.
 
-### The Atlas cluster is unreachable
+### `GetRealtimeStats` is unreachable, and unnecessary
 
-`DB_HOST` points at a cluster whose DNS record does not resolve — an SRV lookup
-returns `NXDOMAIN`, not a timeout, so the name genuinely does not exist. The
-app therefore cannot connect, and nothing that touches the database has been
-run end to end since the move into this repo.
+The obvious design polls `GetLiveLeagueGames` for discovery and
+`GetRealtimeStats` for detail. That does not work: `GetRealtimeStats` needs a
+`server_steam_id`, and **that field is no longer in the `GetLiveLeagueGames`
+response**. Driving it from `lobby_id` instead returns HTTP 400.
 
-Free Atlas clusters are deleted after long inactivity, and this project sat
-untouched from 2023. Creating a new cluster and updating the four `DB_*`
-variables in Infisical is what unblocks it.
+It does not matter, because each match in the discovery response already
+carries a `scoreboard` — `duration`, `roshan_respawn_timer`, and per side
+`score`, `tower_state`, `barracks_state`, `picks`, `bans`, `players`,
+`abilities`, with `net_worth`, `gold`, `level` and items per player.
+
+So there is **no separate snapshot worker**. One poll fetches once and two
+consumers read it: the registry and the archive. A second worker would only
+call the same endpoint again, and this halves the API budget.
+
+The cost is that snapshot density is tied to the discovery interval, which is
+10 seconds. Valve refreshes roughly every 6–9 seconds, so this captures most
+updates. It costs about 8,600 calls a day against a ~100k limit, and the calls
+are per poll rather than per match, so concurrent matches during a Major do not
+multiply it.
+
+### Pausing stops the work, not the process
+
+The process always runs. `POST /workers/discovery/pause` writes `paused` to the
+`worker_state` collection, and the poll checks that state on every tick.
+
+There is deliberately no endpoint that stops the process: if it stopped,
+nothing would be left running to start it again, and you would need a second
+always-on service just to restart the first.
+
+The state is in the database rather than in memory so it outlives a restart —
+otherwise a deploy would silently resume a worker somebody had deliberately
+stopped. A worker with no row is treated as running, because the snapshot
+archive cannot be backfilled and silence is the more expensive failure.
+
+### Broadcast delay is reported, and it is large
+
+Each match carries `stream_delay_s`. Observed values ranged from 120 to 900
+seconds in a single sample. Nothing here can assume parity with a live betting
+market, and the delay is worth storing per snapshot rather than assumed
+constant.
+
+### Reading logs needs a different token from writing them
+
+`AXIOM_TOKEN` can only ingest — asking Axiom to query with it returns 403.
+Reading requires `AXIOM_QUERY_TOKEN`, which is a separate token with read
+scope, and it stays on this server: the console asks the API, and the API asks
+Axiom. Neither token ever reaches a browser.
+
+The variable is optional. Without it `/logs` answers `available: false` with
+the reason, rather than failing — the app still runs, the screen just says why
+it is empty.
+
+**Axiom flattens nested objects into dotted column names.** The logger's
+`fields.env` comes back as a column called exactly `fields.env`, not as a
+`fields` object containing `env`. Reading it as a nested object silently yields
+`undefined`, and filtering on a dotted name needs bracket notation in APL:
+`where ['fields.service'] == "api"`. Both are easy to get wrong without
+noticing, because the query still succeeds and simply returns blank columns.
+
+### The email template was kept, and the data adapted to it
+
+`src/templates/dotaReport.hbs` predates the current data model. It is 300 lines
+of hand-written HTML that renders properly in mail clients, so `ReportService`
+maps a `Prediction` into the shape the template already expects rather than the
+template being rewritten.
+
+`tsc` only emits what it compiles, so `scripts/copy-assets.mjs` copies the
+template into `dist` at build time. Without it the report would fail on the
+first match rather than at build.
+
+### Current state
+
+Working:
+
+- NestJS boots, serves `GET /health`, and logs through Axiom with
+  `service: 'api'`.
+- Environment validated at startup — a missing variable lists every problem and
+  refuses to boot.
+- Mongo connected through `@nestjs/mongoose`.
+- **Reference data syncs.** `heroes` (127) from Steam and `leagues` (10,036, of
+  which 2,681 are tier 1–2) from OpenDota, seeded when empty and re-synced
+  daily.
+- **The unknown-hero trigger works.** A hero id that is not in the collection
+  causes one sync and a retry. It is guarded by a single-flight lock and a
+  five-minute cooldown, so a genuinely bad id cannot make ten heroes in one
+  match fire ten syncs.
+- **The discovery worker runs.** Polls `GetLiveLeagueGames` every 20 seconds,
+  keeps only tracked leagues, and maintains the `live_matches` registry.
+  Verified against the live feed: 26 games returned, 2 kept, both registered
+  with their series score and stream delay. Re-polling does not duplicate a
+  match or move its `startedAt`, and a match that leaves the feed is marked
+  `ended` on the next poll.
+
+- **Snapshots accumulate.** Every poll appends one row per live match to
+  `match_snapshots`, with a unique index on `(matchId, capturedAt)`. Verified
+  over three polls of a real match: net worth and score advanced, picks, bans,
+  tower bitmasks, Roshan timer and the raw payload all stored. Writing the same
+  poll twice is rejected by the index, logged as a warning, and does not stop
+  the rest of the batch.
+
+- **Pause and resume work, and survive a restart.** Verified end to end:
+  pausing froze `lastPollAt` across several ticks; pausing, killing the process
+  and starting it again came back with `paused: true` and `lastPollAt: null`,
+  so the fresh process never polled; resuming started it again. An unknown
+  worker name returns 404.
+
+- **The scoring is ported, and the whole payload is stored.** Verified against
+  ten real players: 20 OpenDota calls in 3.2s at concurrency 3, producing
+  `235.87 vs 215.12`, `favoured: radiant`, `marginPercent: 8.8`,
+  `complete: true`, with all ten players kept — name, hero, portrait, win rate,
+  familiarity rank, games played and leaderboard rank.
+
+- **Winner backfill runs.** Every five minutes it takes up to ten predictions
+  with no result, asks OpenDota only about matches the registry says have
+  ended, and records the winner and whether the call was right. Verified
+  against three real finished matches, including one where the same team won
+  from the other side. Pausable like discovery.
+
+- **The email report is back.** Each new prediction is emailed as well as
+  stored, using the original Handlebars template.
+
+Everything planned for the backend is built.
+
+The `matches` collection holds 18 rows from September 2025, none with a winner
+recorded, and several with a score of `0` — the signature of the swallowed-error
+problem above. An older archive of 234 scored matches exists on a different
+Atlas cluster and is not in use.

@@ -3,11 +3,9 @@
 Applies to every Node app in `apps/` that is not a frontend: HTTP APIs,
 workers, and scheduled jobs.
 
-`dota-bet-analytics` came from another repository and follows these rules only
-in part — logging, module format and configuration are in line, error handling
-is not. Check its
-[known weaknesses](../apps/dota-bet-analytics.md#known-weaknesses) before
-copying anything from it.
+`dota-bet-analytics` was rewritten against these rules and is the reference
+implementation. Its [known weaknesses](../apps/dota-bet-analytics.md#known-weaknesses)
+list what is still outstanding.
 
 ## 1. Layers, and which way they point
 
@@ -179,11 +177,44 @@ Find which one your organisation uses in the Axiom console under
 the client uses Axiom's default endpoint. A regional hostname must not go in
 `url`, which is for non-ingest calls only.
 
-Whatever you are logging:
+### What to log
 
-- **Message first, fields second.** `logger.info('match analysed', { matchId })`
-  — not ``logger.info(`match ${matchId} analysed`)``. A field can be filtered
-  and grouped in Axiom; a value glued into a sentence cannot.
+The target is that a question about production can be answered from Axiom
+alone, without adding logging and waiting for it to happen again.
+
+- **One `info` per completed step of work** — a match discovered, a prediction
+  made, a report sent, a sync finished. Not per function call.
+- **`warn` for anything degraded but survivable** — a retry, a missing player's
+  stats, a duplicate write, a value falling back to a default.
+- **`error` for work that did not happen**, with the `Error` passed so the
+  stack and name are kept.
+- **`debug` for per-tick detail** — one line summarising each poll. Off in
+  production, invaluable when something is wrong.
+
+Every line carries a `context` naming the part of the app it came from, so
+`['fields.context'] == "Discovery"` narrows to one worker.
+
+### Message first, fields second
+
+`logger.info('match analysed', { matchId })` — not
+``logger.info(`match ${matchId} analysed`)``. A field can be filtered, grouped
+and counted; a value glued into a sentence can only be substring-searched.
+
+Keep the message a **fixed string**. Variable text in the message means the
+same event reads as many different events, and counting them becomes
+impossible.
+
+### Failures in shared helpers need a way out
+
+A retry loop inside a plain function has no logger. Give it a callback the
+caller supplies rather than reaching for a global — `fetchJson` takes an
+observer, and one shared implementation turns those into log lines. Without
+it, a rate-limit storm is completely invisible: the caller only ever sees the
+final result.
+
+**Redact secrets that live in URLs.** Steam puts the API key in the query
+string, so anything logging a URL strips it first.
+
 - **Levels mean something.** `error` is something a person must look at.
   `warn` is unexpected but handled. `info` is a normal milestone. `debug` is off
   in production.

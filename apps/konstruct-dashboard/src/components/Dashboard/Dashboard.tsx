@@ -8,13 +8,13 @@ import { LogoMark } from '@/components/LogoMark';
 
 import type { DashboardProps } from './types';
 
-export function Dashboard({ apps }: DashboardProps) {
+export function Dashboard({ entries }: DashboardProps) {
   const [query, setQuery] = useState('');
 
-  const filteredApps = useMemo(() => {
+  const filteredEntries = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? apps.filter((app) => app.name.toLowerCase().includes(q)) : apps;
-  }, [apps, query]);
+    return q ? entries.filter((entry) => entry.app.name.toLowerCase().includes(q)) : entries;
+  }, [entries, query]);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -37,10 +37,10 @@ export function Dashboard({ apps }: DashboardProps) {
       </header>
 
       <main className="max-w-290 px-4 pt-6 pb-14 sm:px-10 sm:pt-12 sm:pb-20">
-        {filteredApps.length > 0 ? (
+        {filteredEntries.length > 0 ? (
           <div className="grid grid-cols-1 gap-5.5 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
-            {filteredApps.map((app) => (
-              <AppCard key={app.id} app={app} />
+            {filteredEntries.map((entry) => (
+              <AppCard key={entry.app.id} app={entry.app} href={entry.href} />
             ))}
           </div>
         ) : (

@@ -6,10 +6,12 @@ pnpm workspace. Workspace roots are declared in `pnpm-workspace.yaml`.
 konstruct/
 ├── apps/                      # every app, one workspace package each
 │   ├── konstruct-dashboard/   # the platform shell (Next.js)
-│   └── dota-bet-analytics/    # Dota match report worker (Node, cron)
+│   ├── dota-bet-analytics/    # Dota match tracking API + workers (NestJS)
+│   └── dota-bet-analytics-console/  # its frontend (Next.js)
 ├── packages/                  # shared code, installable into any app
-│   ├── eslint-config/         # @konstruct/eslint-config → ./base, ./next, ./node
+│   ├── eslint-config/         # @konstruct/eslint-config → ./base, ./nest, ./next, ./node
 │   ├── logger/                # @konstruct/logger → ./server, ./client
+│   ├── tsconfig/              # @konstruct/tsconfig → base, nest, next
 │   └── prettier-config/       # @konstruct/prettier-config
 ├── docs/
 │   ├── index.md               # imports of the always-loaded docs
@@ -47,14 +49,17 @@ One workspace package per app. Each owns its `package.json` and
 
 - `konstruct-dashboard` — the shell listing every app.
   [Docs](../apps/konstruct-dashboard.md).
-- `dota-bet-analytics` — Node worker, no HTTP server.
+- `dota-bet-analytics` — NestJS API and workers.
   [Docs](../apps/dota-bet-analytics.md).
+- `dota-bet-analytics-console` — Next.js frontend for it.
+  [Docs](../apps/dota-bet-analytics-console.md).
 
 ## scripts/
 
 Tooling that belongs to the repo rather than to one app, run through a root
-script. `dev.js` resolves app names and aliases from `apps.config.js` and hands
+script. `dev.js` resolves app names, aliases and groups from `apps.config.js` and hands
 them to pnpm; registering a new app there is what makes `pnpm dev <app>` work.
+With no arguments it runs every app.
 
 ## docs/apps/
 

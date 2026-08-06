@@ -35,8 +35,16 @@ pnpm --filter <app> add @konstruct/<pkg> --workspace
 ```
 
 `pnpm dev` takes one or more apps, separated by commas or spaces, and runs them
-in parallel — `pnpm dev dashboard, dota`. Run it with no arguments to list what
-is available.
+in parallel — `pnpm dev dashboard, dota`. **With no arguments it runs
+everything.**
+
+A product split into a frontend and a backend has a group name covering both:
+
+```bash
+pnpm dev dota            # API and console together
+pnpm dev dota-server     # the API alone
+pnpm dev dota-console    # the console alone
+```
 
 ## Secrets
 
@@ -102,14 +110,16 @@ Full breakdown: [docs/project/structure.md](docs/project/structure.md).
 
 ## Apps
 
-| App                   | What it is                                        | Docs                                     |
-| --------------------- | ------------------------------------------------- | ---------------------------------------- |
-| `konstruct-dashboard` | The platform shell — lists and links to apps.     | [docs](docs/apps/konstruct-dashboard.md) |
-| `dota-bet-analytics`  | Worker. Emails a report on live Dota pro matches. | [docs](docs/apps/dota-bet-analytics.md)  |
+| App                          | What it is                                      | Docs                                            |
+| ---------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| `konstruct-dashboard`        | The platform shell — lists and links to apps.   | [docs](docs/apps/konstruct-dashboard.md)        |
+| `dota-bet-analytics`         | API + workers tracking live Dota 2 pro matches. | [docs](docs/apps/dota-bet-analytics.md)         |
+| `dota-bet-analytics-console` | Its console — control, matches, predictions.    | [docs](docs/apps/dota-bet-analytics-console.md) |
 
 ```bash
+pnpm dev               # everything
 pnpm dev dashboard     # http://localhost:3000
-pnpm dev dota          # no port — a cron worker, not a server
+pnpm dev dota          # API on :4001 and console on :4000
 ```
 
 Apps are separate deployments; the dashboard links to them by URL. See
@@ -120,8 +130,8 @@ follow [docs/apps/README.md](docs/apps/README.md#adding-a-new-app).
 
 - **pnpm only** — never npm or yarn.
 - **Prettier and ESLint** — shared via `@konstruct/prettier-config` and
-  `@konstruct/eslint-config` (`./base`, `./next`, `./node`); apps extend rather
-  than fork them.
+  `@konstruct/eslint-config` (`./base`, `./nest`, `./next`, `./node`); apps
+  extend rather than fork them.
 - **Secrets in Infisical** — never in a committed file.
 - **Logs to Axiom** — through `@konstruct/logger`, one dataset per app, never a
   `logs/` folder.

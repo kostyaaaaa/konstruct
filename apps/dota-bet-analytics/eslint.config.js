@@ -1,3 +1,3 @@
-import node from '@konstruct/eslint-config/node';
+import nest from '@konstruct/eslint-config/nest';
 
-export default node;
+export default [...nest, { ignores: ['dist/**'] }];
