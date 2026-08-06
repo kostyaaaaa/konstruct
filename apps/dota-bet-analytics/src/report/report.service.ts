@@ -77,7 +77,9 @@ export class ReportService implements OnModuleInit {
   }
 
   render(prediction: Prediction): string {
-    if (!this.template) throw new Error('Report template not compiled');
+    if (!this.template) {
+      throw new Error('Report template not compiled');
+    }
 
     return this.template({
       team_name_radiant: prediction.radiantTeamName,
@@ -100,7 +102,9 @@ export class ReportService implements OnModuleInit {
    * outcome.
    */
   async send(prediction: Prediction): Promise<boolean> {
-    if (!this.transporter) return false;
+    if (!this.transporter) {
+      return false;
+    }
 
     try {
       const html = this.render(prediction);

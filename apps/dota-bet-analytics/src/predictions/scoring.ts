@@ -40,7 +40,9 @@ export function scoreSide(players: readonly PlayerHeroStats[]): SideScore {
     /* A hero the player has never picked contributes nothing. The old code
        divided by a rank of 0 here and produced Infinity, which then made the
        whole side's score NaN. */
-    if (!player.heroRank || player.heroRank <= 0) return total;
+    if (!player.heroRank || player.heroRank <= 0) {
+      return total;
+    }
     return total + 100 / player.heroRank;
   }, 0);
 

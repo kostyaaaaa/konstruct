@@ -33,6 +33,7 @@ export default tseslint.config(
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
+
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -44,6 +45,29 @@ export default tseslint.config(
       ],
     },
   },
-  // Must stay last: disables every rule Prettier already handles.
+  // Disables every rule Prettier already handles.
   prettier,
+  {
+    /**
+     * Re-enabled **after** `prettier`, which switches `curly` off by default.
+     *
+     * `eslint-config-prettier` disables it because some of its options can
+     * fight the formatter. `"all"` cannot: braces change the syntax tree, not
+     * the formatting, so Prettier has no opinion on them.
+     *
+     * This block has to stay last. Put the rule above `prettier` and it is
+     * silently set to severity 0 — the config still loads, lint still passes,
+     * and nothing is enforced.
+     */
+    rules: {
+      /**
+       * Braces on every block, even a one-line `if`.
+       *
+       * A braceless body is one careless edit away from a bug: adding a second
+       * statement leaves it outside the branch while the indentation claims
+       * otherwise.
+       */
+      curly: ['error', 'all'],
+    },
+  },
 );

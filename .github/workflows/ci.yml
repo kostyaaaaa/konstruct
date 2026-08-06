@@ -1,0 +1,57 @@
+name: CI
+
+# Railway and Vercel already build and deploy. What they do not do is run
+# ESLint or Prettier, so code that fails lint deploys perfectly happily. This
+# runs the checks that would otherwise never run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No version here on purpose: pnpm/action-setup reads the
+      # `packageManager` field in package.json, so CI and everyone's laptop
+      # always agree.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # `--frozen-lockfile` fails instead of quietly rewriting the lockfile, so
+      # a dependency added without committing the lockfile is caught here.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+
+      # The root ESLint config ignores `apps/**` — each app owns its own lint
+      # run so it can add framework layers. Both are needed for full coverage.
+      - name: Lint (root and packages)
+        run: pnpm lint
+
+      - name: Lint (apps)
+        run: pnpm -r lint
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      # Last, because it is the slowest and the cheap checks should fail first.
+      # Needs no secrets: every page is `force-dynamic`, so no build-time
+      # rendering calls the API.
+      - name: Build
+        run: pnpm -r build

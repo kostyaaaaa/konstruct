@@ -67,25 +67,34 @@ const resolved = [];
 const unknown = [];
 
 const add = (name) => {
-  if (!resolved.includes(name)) resolved.push(name);
+  if (!resolved.includes(name)) {
+    resolved.push(name);
+  }
 };
 
 if (requested.length === 0) {
   // No arguments: run everything.
-  for (const app of apps) add(app.name);
+  for (const app of apps) {
+    add(app.name);
+  }
 } else {
   for (const token of requested) {
     const key = token.toLowerCase();
     const members = groupByKey.get(key);
 
     if (members) {
-      for (const member of members) add(member);
+      for (const member of members) {
+        add(member);
+      }
       continue;
     }
 
     const name = nameByKey.get(key);
-    if (name) add(name);
-    else unknown.push(token);
+    if (name) {
+      add(name);
+    } else {
+      unknown.push(token);
+    }
   }
 }
 

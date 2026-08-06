@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    The Konstruct 2x2 mark, matching the LogoMark component in the header.
+
+    The component builds it from divs so it picks up the brand tokens; a
+    favicon renders outside the page's CSS, so the same colours are inlined as
+    hex here. Keep the two in step if the brand palette changes.
+  -->
+  <rect width="32" height="32" rx="7" fill="#35794b" />
+  <rect x="7" y="7" width="8" height="8" rx="1.5" fill="#effdf2" />
+  <rect x="17" y="7" width="8" height="8" rx="1.5" fill="#b6d8be" />
+  <rect x="7" y="17" width="8" height="8" rx="1.5" fill="#b6d8be" />
+  <rect x="17" y="17" width="8" height="8" rx="1.5" fill="#effdf2" />
+</svg>

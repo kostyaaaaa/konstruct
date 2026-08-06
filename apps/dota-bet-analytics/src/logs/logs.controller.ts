@@ -10,6 +10,7 @@ export class LogsController {
   async recent(
     @Query('level') level?: LogQuery['level'],
     @Query('service') service?: string,
+    @Query('env') env?: string,
     @Query('hours', new DefaultValuePipe(24), ParseIntPipe) hours = 24,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit = 100,
   ) {
@@ -22,7 +23,7 @@ export class LogsController {
       };
     }
 
-    const rows = await this.logs.recent({ level, service, hours, limit });
+    const rows = await this.logs.recent({ level, service, env, hours, limit });
     return { available: true, count: rows.length, rows };
   }
 }

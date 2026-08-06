@@ -33,7 +33,9 @@ export class LiveMatchesService {
    * written on insert, so a restart cannot move it.
    */
   async recordSeen(observed: ObservedMatch[], seenAt: Date): Promise<number[]> {
-    if (observed.length === 0) return [];
+    if (observed.length === 0) {
+      return [];
+    }
 
     const ids = observed.map((match) => match.matchId);
     const alreadyLive = await this.model
@@ -76,7 +78,9 @@ export class LiveMatchesService {
       .lean<{ matchId: number }[]>()
       .exec();
 
-    if (stale.length === 0) return [];
+    if (stale.length === 0) {
+      return [];
+    }
 
     const staleIds = stale.map((match) => match.matchId);
     await this.model
@@ -88,7 +92,9 @@ export class LiveMatchesService {
 
   /** Of the given ids, the ones that have finished. */
   async findEndedIds(matchIds: number[]): Promise<Set<number>> {
-    if (matchIds.length === 0) return new Set();
+    if (matchIds.length === 0) {
+      return new Set();
+    }
 
     const ended = await this.model
       .find({ matchId: { $in: matchIds }, status: 'ended' })

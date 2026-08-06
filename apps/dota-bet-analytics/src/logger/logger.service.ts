@@ -18,7 +18,9 @@ import { createLogger } from '@konstruct/logger/server';
 export type LogDetails = string | Record<string, unknown>;
 
 function toFields(details?: LogDetails): Record<string, unknown> {
-  if (!details) return {};
+  if (!details) {
+    return {};
+  }
   return typeof details === 'string' ? { context: details } : details;
 }
 

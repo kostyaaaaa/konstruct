@@ -14,7 +14,9 @@ const loaded = new Map<string, SvgComponent>();
 
 function iconComponent(name: string): SvgComponent {
   const cached = loaded.get(name);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const component = lazy(async () => {
     try {

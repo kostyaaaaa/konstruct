@@ -18,7 +18,9 @@ export async function mapWithLimit<T, R>(
       const index = next;
       next += 1;
       const item = items[index];
-      if (item === undefined) continue;
+      if (item === undefined) {
+        continue;
+      }
       results[index] = await task(item, index);
     }
   });

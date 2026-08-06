@@ -43,7 +43,9 @@ let registered = false;
 
 /** Idempotent — Handlebars keeps helpers globally, so this runs once. */
 export function registerReportHelpers(): void {
-  if (registered) return;
+  if (registered) {
+    return;
+  }
 
   for (const family of Object.values(BANDS)) {
     for (const [name, test] of family) {

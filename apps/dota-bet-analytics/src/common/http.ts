@@ -70,7 +70,9 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
 
       return (await response.json()) as T;
     } catch (error) {
-      if (error instanceof HttpClientError) throw error;
+      if (error instanceof HttpClientError) {
+        throw error;
+      }
       lastError = error;
     }
   }

@@ -11,6 +11,8 @@ export interface LogQuery {
   level?: 'debug' | 'info' | 'warn' | 'error';
   /** Restrict to one service, e.g. `api` or `web`. */
   service?: string;
+  /** Restrict to one environment, e.g. `prod`. */
+  env?: string;
   /** How far back to look, in hours. */
   hours?: number;
   limit?: number;
@@ -65,14 +67,16 @@ export class LogsService {
    */
   async recent(query: LogQuery = {}): Promise<LogRow[]> {
     const token = this.config.get('AXIOM_QUERY_TOKEN', { infer: true });
-    if (!token) return [];
+    if (!token) {
+      return [];
+    }
 
     const dataset = this.config.get('AXIOM_DATASET', { infer: true });
     const edge = this.config.get('AXIOM_EDGE', { infer: true });
 
     this.client ??= new Axiom({ token, ...(edge ? { edge } : {}) });
 
-    const { level = 'info', service, hours = 24, limit = 100 } = query;
+    const { level = 'info', service, env, hours = 24, limit = 100 } = query;
     const allowed = LEVEL_ORDER.slice(LEVEL_ORDER.indexOf(level))
       .map((value) => `"${value}"`)
       .join(', ');
@@ -82,7 +86,15 @@ export class LogsService {
        column, and not a nested object. Dotted names need bracket notation in
        APL. */
     const filters = [`level in (${allowed})`];
-    if (service) filters.push(`['fields.service'] == "${service.replace(/"/g, '')}"`);
+    if (service) {
+      filters.push(`['fields.service'] == "${service.replace(/"/g, '')}"`);
+    }
+    /* dev and prod share one dataset, separated only by this field. Without
+       the filter the console mixes a developer's laptop with production and
+       gives no way to tell them apart. */
+    if (env) {
+      filters.push(`['fields.env'] == "${env.replace(/"/g, '')}"`);
+    }
 
     const apl = [
       `['${dataset}']`,
@@ -101,7 +113,9 @@ export class LogsService {
          that zips them back into records — safer than indexing columns by
          position, which breaks the moment a field is added. */
       const table = result.tables?.[0];
-      if (!table) return [];
+      if (!table) {
+        return [];
+      }
 
       const rows: LogRow[] = [];
       for (const event of table.events()) {

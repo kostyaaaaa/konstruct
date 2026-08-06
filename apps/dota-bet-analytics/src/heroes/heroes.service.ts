@@ -45,11 +45,15 @@ export class HeroesService implements OnModuleInit {
 
   async findByHeroId(heroId: number): Promise<Hero | null> {
     const hero = await this.heroModel.findOne({ heroId }).lean<Hero>().exec();
-    if (hero) return hero;
+    if (hero) {
+      return hero;
+    }
 
     // Unknown id: most likely a hero added in a patch we have not synced.
     const refreshed = await this.refreshForUnknownHero(heroId);
-    if (!refreshed) return null;
+    if (!refreshed) {
+      return null;
+    }
 
     const retried = await this.heroModel.findOne({ heroId }).lean<Hero>().exec();
     if (!retried) {
@@ -81,7 +85,9 @@ export class HeroesService implements OnModuleInit {
 
   /** Fetches every hero from Steam and upserts them. Returns how many. */
   async sync(): Promise<number> {
-    if (this.inFlight) return this.inFlight;
+    if (this.inFlight) {
+      return this.inFlight;
+    }
 
     this.inFlight = this.runSync().finally(() => {
       this.inFlight = null;

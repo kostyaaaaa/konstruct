@@ -62,8 +62,12 @@ export class BackfillService {
 
   @Interval('backfill', 5 * 60 * 1000)
   async run(): Promise<void> {
-    if (await this.workers.isPaused('backfill')) return;
-    if (this.running) return;
+    if (await this.workers.isPaused('backfill')) {
+      return;
+    }
+    if (this.running) {
+      return;
+    }
 
     this.running = true;
     this.lastRunAt = new Date();
@@ -86,7 +90,9 @@ export class BackfillService {
   async resolveFinished(): Promise<number> {
     const pending = await this.predictions.findAwaitingWinner(BATCH_SIZE, MAX_ATTEMPTS);
     this.lastPending = pending.length;
-    if (pending.length === 0) return 0;
+    if (pending.length === 0) {
+      return 0;
+    }
 
     /* Only ask about matches the registry says are over. Asking while a match
        is still running wastes an attempt on a result that cannot exist yet. */
@@ -94,12 +100,16 @@ export class BackfillService {
     let resolved = 0;
 
     for (const prediction of pending) {
-      if (!ended.has(prediction.matchId)) continue;
+      if (!ended.has(prediction.matchId)) {
+        continue;
+      }
 
       await this.predictions.noteBackfillAttempt(prediction.matchId);
 
       const outcome = await this.fetchOutcome(prediction);
-      if (!outcome) continue;
+      if (!outcome) {
+        continue;
+      }
 
       await this.predictions.setOutcome(prediction.matchId, outcome.winner, outcome.radiantWon);
       resolved += 1;
@@ -141,7 +151,9 @@ export class BackfillService {
   }): Promise<{ winner: string; radiantWon: boolean } | null> {
     try {
       const detail = await this.openDota.matchDetail(prediction.matchId);
-      if (detail?.radiant_win === undefined) return null;
+      if (detail?.radiant_win === undefined) {
+        return null;
+      }
 
       const radiantWon = detail.radiant_win;
       return {
@@ -151,7 +163,9 @@ export class BackfillService {
           : (prediction.direTeamName ?? 'dire'),
       };
     } catch (error) {
-      if (error instanceof HttpClientError && error.status === 404) return null;
+      if (error instanceof HttpClientError && error.status === 404) {
+        return null;
+      }
       throw error;
     }
   }

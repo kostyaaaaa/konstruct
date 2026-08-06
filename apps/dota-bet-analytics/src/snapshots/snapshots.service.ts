@@ -33,7 +33,9 @@ export class SnapshotsService {
    */
   async recordFrom(games: SteamLiveGame[], capturedAt: Date): Promise<number> {
     const playable = games.filter((game) => typeof game.match_id === 'number' && game.scoreboard);
-    if (playable.length === 0) return 0;
+    if (playable.length === 0) {
+      return 0;
+    }
 
     /* The raw payload is 91% of a snapshot's size, and it is identical in
        shape for every snapshot of a match. Keeping it on the first one per
@@ -59,7 +61,9 @@ export class SnapshotsService {
       const isDuplicate =
         typeof error === 'object' && error !== null && 'code' in error && error.code === 11000;
 
-      if (!isDuplicate) throw error;
+      if (!isDuplicate) {
+        throw error;
+      }
 
       this.logger.warn('snapshot batch had duplicates, kept the rest', {
         context: 'Snapshots',

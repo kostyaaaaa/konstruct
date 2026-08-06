@@ -25,6 +25,8 @@ konstruct/
 │   └── dev.js                 # `pnpm dev <app>[, <app>...]`
 ├── .claude/
 │   └── settings.json          # Claude Code model + auto-allowed commands
+├── .github/
+│   └── workflows/ci.yml       # format, lint, typecheck, build on push and PR
 ├── .husky/
 │   └── pre-commit             # runs lint-staged
 ├── README.md                  # human entry point — setup, commands, conventions

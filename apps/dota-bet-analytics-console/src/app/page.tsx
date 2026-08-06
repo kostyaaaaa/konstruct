@@ -7,17 +7,27 @@ import { api } from '@/lib/api';
 export const dynamic = 'force-dynamic';
 
 function ago(iso: string | null): string {
-  if (!iso) return 'never';
+  if (!iso) {
+    return 'never';
+  }
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+  if (seconds < 3600) {
+    return `${Math.round(seconds / 60)}m ago`;
+  }
   return `${Math.round(seconds / 3600)}h ago`;
 }
 
 /** More than a minute without a successful poll means something is wrong. */
 function pollTone(lastSuccessAt: string | null, paused: boolean) {
-  if (paused) return 'warn' as const;
-  if (!lastSuccessAt) return 'bad' as const;
+  if (paused) {
+    return 'warn' as const;
+  }
+  if (!lastSuccessAt) {
+    return 'bad' as const;
+  }
   const seconds = (Date.now() - new Date(lastSuccessAt).getTime()) / 1000;
   return seconds > 60 ? ('bad' as const) : ('ok' as const);
 }

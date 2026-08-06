@@ -29,7 +29,29 @@ against personal preference, and do not leave lint errors for later.
 - Never silence a rule with an inline disable to make a change pass. Fix the
   code, or change the shared config deliberately and say why.
 
-## 3. Every commit is formatted and linted
+## 3. Braces on every block
+
+Even a one-line `if`. `curly: ['error', 'all']` in the shared config enforces
+it, and `--fix` applies it.
+
+```js
+if (!url) {
+  return fallback;
+}
+```
+
+A braceless body is one careless edit from a bug: adding a second statement
+leaves it outside the branch while the indentation claims otherwise. Prettier
+will not add braces, because they change the syntax tree rather than the
+formatting — so it has to be a lint rule.
+
+**The rule sits after `prettier` in `base.js`, and has to.**
+`eslint-config-prettier` switches `curly` off, so declaring it above that line
+leaves it at severity 0: the config loads, lint passes, and nothing is
+enforced. Check with `eslint --print-config <file>` — a rule set to `0` is off,
+however clearly it is written elsewhere.
+
+## 4. Every commit is formatted and linted
 
 A husky `pre-commit` hook runs lint-staged over staged files only:
 
@@ -47,7 +69,28 @@ applies to that app's files even though the hook runs from the repo root.
 
 The hook is installed by the `prepare` script, which pnpm runs on install.
 
-## 4. Configs layer, they do not fork
+## 5. CI runs the checks the hosts do not
+
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on every push
+to `main` and every pull request:
+
+```
+install (--frozen-lockfile) → format:check → lint → lint -r → typecheck -r → build -r
+```
+
+Railway and Vercel build and deploy, and their builds run `tsc`, so a type
+error already blocks a deploy. **Neither runs ESLint or Prettier**, so without
+this, code failing lint deploys perfectly happily.
+
+Both lint steps are needed: the root config ignores `apps/**`, so `pnpm lint`
+covers the repo and packages while `pnpm -r lint` covers each app's own run.
+The recursive forms pick up a new app automatically, as long as it has the
+standard `lint`, `typecheck` and `build` scripts.
+
+It needs no secrets. Every page is `force-dynamic`, so nothing calls the API at
+build time.
+
+## 6. Configs layer, they do not fork
 
 The packages hold the global behavior; an app overrides locally only what it
 genuinely needs.

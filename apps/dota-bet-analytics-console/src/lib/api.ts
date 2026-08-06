@@ -14,7 +14,9 @@ const DEV_FALLBACK = 'http://localhost:4001';
 
 function baseUrl(): string {
   const url = process.env.API_URL;
-  if (url) return url;
+  if (url) {
+    return url;
+  }
 
   /* Outside dev there is no sensible guess — localhost would be this server,
      not the API. Say so loudly rather than failing with a confusing timeout. */
@@ -144,7 +146,9 @@ async function get<T>(path: string): Promise<T | null> {
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return null;
+    }
     return (await response.json()) as T;
   } catch {
     return null;
@@ -161,7 +165,10 @@ export const api = {
   prediction: (matchId: number) => get<Prediction>(`/predictions/${matchId}`),
   series: (matchId: number) =>
     get<{ matchId: number; count: number; points: SeriesPoint[] }>(`/snapshots/${matchId}/series`),
-  logs: (level: string) => get<LogsResponse>(`/logs?level=${level}&hours=24&limit=100`),
+  logs: (level: string, env?: string) =>
+    get<LogsResponse>(
+      `/logs?level=${level}&hours=24&limit=100${env ? `&env=${encodeURIComponent(env)}` : ''}`,
+    ),
   accuracy: (minMarginPercent: number) =>
     get<Accuracy>(`/predictions/accuracy?minMarginPercent=${minMarginPercent}`),
 };

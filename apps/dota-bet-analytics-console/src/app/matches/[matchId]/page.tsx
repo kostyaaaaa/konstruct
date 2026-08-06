@@ -15,7 +15,9 @@ export default async function MatchDetailPage({
 }) {
   const { matchId: raw } = await params;
   const matchId = Number(raw);
-  if (!Number.isFinite(matchId)) notFound();
+  if (!Number.isFinite(matchId)) {
+    notFound();
+  }
 
   const [prediction, series] = await Promise.all([api.prediction(matchId), api.series(matchId)]);
 

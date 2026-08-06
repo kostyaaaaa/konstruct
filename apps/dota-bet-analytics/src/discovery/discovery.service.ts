@@ -70,7 +70,9 @@ export class DiscoveryService {
   async poll(): Promise<void> {
     /* Read every tick rather than cached, so resuming takes effect on the
        next poll instead of needing a restart. */
-    if (await this.workers.isPaused('discovery')) return;
+    if (await this.workers.isPaused('discovery')) {
+      return;
+    }
 
     if (this.polling) {
       // A poll that outran its interval. Skipping is correct — the next tick
@@ -180,10 +182,14 @@ export class DiscoveryService {
   ): Promise<void> {
     for (const game of games) {
       const match = observed.find((candidate) => candidate.matchId === game.match_id);
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
 
       try {
-        if (await this.predictions.existsFor(match.matchId)) continue;
+        if (await this.predictions.existsFor(match.matchId)) {
+          continue;
+        }
         const prediction = await this.predictions.analyse(game, {
           matchId: match.matchId,
           leagueId: match.leagueId,
@@ -194,7 +200,9 @@ export class DiscoveryService {
         /* The console shows every prediction; the email is the push copy.
            A mail failure is reported by the service and does not stop the
            poll — the prediction is already stored. */
-        if (prediction) await this.report.send(prediction);
+        if (prediction) {
+          await this.report.send(prediction);
+        }
       } catch (error) {
         this.logger.error('prediction failed', error instanceof Error ? error : undefined, {
           context: 'Discovery',
@@ -209,8 +217,12 @@ export class DiscoveryService {
     const matchId = game.match_id;
     const leagueId = game.league_id;
 
-    if (typeof matchId !== 'number' || typeof leagueId !== 'number') return null;
-    if (!tracked.has(leagueId)) return null;
+    if (typeof matchId !== 'number' || typeof leagueId !== 'number') {
+      return null;
+    }
+    if (!tracked.has(leagueId)) {
+      return null;
+    }
 
     return {
       matchId,

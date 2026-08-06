@@ -13,13 +13,17 @@ import { post } from '@/lib/api';
 
 export async function pauseWorker(formData: FormData) {
   const name = String(formData.get('name') ?? '');
-  if (name) await post(`/workers/${name}/pause`);
+  if (name) {
+    await post(`/workers/${name}/pause`);
+  }
   revalidatePath('/');
 }
 
 export async function resumeWorker(formData: FormData) {
   const name = String(formData.get('name') ?? '');
-  if (name) await post(`/workers/${name}/resume`);
+  if (name) {
+    await post(`/workers/${name}/resume`);
+  }
   revalidatePath('/');
 }
 
