@@ -113,6 +113,7 @@ posting reports about them to the channel.
 | `DB_NAME`            | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
 | `STEAM_API_KEY`      | Steam Web API key, server-side only                            |
 | `OPENDOTA_API_URL`   | Defaults to the public API; no key                             |
+| `EXTRA_LEAGUE_IDS`   | Optional. League ids to track whatever their tier              |
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather                                      |
 | `TELEGRAM_CHAT_ID`   | Channel id, or `@channelusername`                              |
 | `CONSOLE_URL`        | Optional. Where the report's "View match" link points          |
@@ -317,6 +318,23 @@ The Telegram message carries how past calls at this confidence turned out, with
 the sample size next to it. It is shown from the very first one — `(2 settled)`
 says plainly that it means nothing yet, and hiding the line until it is
 trustworthy would mean never seeing whether it is working.
+
+### Which tournaments are tracked, and the escape hatch
+
+Discovery keeps leagues OpenDota tiers as `premium` or `professional`. That
+label is OpenDota's judgement and an uneven one — its third tier, `excluded`,
+holds FACEIT pickup games and real tournaments side by side. Measured on one
+evening: 16 of 17 live games were `excluded`, of which seven were FACEIT pubs
+with unnamed teams and three were genuine events.
+
+Tracking that tier wholesale would multiply the snapshot archive by roughly
+seventeen, and the archive already sets the pace against a 512 MB Atlas limit.
+
+So `EXTRA_LEAGUE_IDS` adds specific leagues by id, whatever their tier. It is a
+variable rather than a constant so a tournament can be added mid-event without
+a deploy, and ids are added whether or not the league has been synced yet — a
+brand new event will not be in the database, and waiting a day for it defeats
+the point.
 
 ### `heroWinRate` counts pubs as well as official matches
 

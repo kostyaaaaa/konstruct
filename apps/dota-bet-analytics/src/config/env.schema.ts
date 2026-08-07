@@ -22,6 +22,14 @@ export const envSchema = z.object({
   STEAM_API_KEY: z.string().min(1),
   /* OpenDota, for league tier and post-match backfill. No key needed. */
   OPENDOTA_API_URL: z.string().url().default('https://api.opendota.com/api'),
+  /* League ids to track regardless of tier, comma separated.
+
+     OpenDota's `excluded` tier is a judgement, and an uneven one: it holds
+     FACEIT pickup games and real tournaments side by side. Tracking the whole
+     tier would multiply the snapshot archive by roughly seventeen, most of it
+     unnamed pub teams. This is the escape hatch for the handful worth having,
+     and it is a variable so adding one needs no deploy. */
+  EXTRA_LEAGUE_IDS: z.string().optional(),
 
   /* The prediction report, posted to a Telegram channel.
 

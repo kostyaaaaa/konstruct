@@ -45,7 +45,29 @@ export class LeaguesService implements OnModuleInit {
       .lean<{ leagueId: number }[]>()
       .exec();
 
-    return new Set(leagues.map((league) => league.leagueId));
+    const tracked = new Set(leagues.map((league) => league.leagueId));
+
+    /* Added whether or not the league is in the database — a brand new event
+       may not have been synced yet, and waiting a day for it defeats the
+       point of an escape hatch. */
+    for (const id of this.extraLeagueIds()) {
+      tracked.add(id);
+    }
+
+    return tracked;
+  }
+
+  /** Ids from `EXTRA_LEAGUE_IDS`, ignoring anything that is not a number. */
+  private extraLeagueIds(): number[] {
+    const raw = this.config.get('EXTRA_LEAGUE_IDS', { infer: true });
+    if (!raw) {
+      return [];
+    }
+
+    return raw
+      .split(',')
+      .map((part) => Number(part.trim()))
+      .filter((id) => Number.isInteger(id) && id > 0);
   }
 
   async findByLeagueId(leagueId: number): Promise<League | null> {
