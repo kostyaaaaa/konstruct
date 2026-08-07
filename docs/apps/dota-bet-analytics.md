@@ -52,11 +52,13 @@ thing you look at.
 - **Match discovery.** Which professional matches are live, filtered to tier 1
   and 2.
 - **The snapshot archive.** Append-only time-series of in-game state.
-- **The score.** Two numbers per match, radiant and dire, from player-hero win
-  rates weighted against hero familiarity.
+- **The score.** A probability that Radiant wins, from how the ten players
+  perform on the heroes they picked.
 - **The report.** A Telegram rich message posted per newly analysed match.
 - **The professional player list.** `pro_players`, synced from OpenDota, so a
   roster can show the name a player is known by rather than their Steam name.
+- **The hero matchup matrix.** `hero_matchups`, how every hero has fared
+  against every other across three years of professional play.
 
 ## Uses
 
@@ -246,6 +248,95 @@ it is empty.
 `undefined`, and filtering on a dotted name needs bracket notation in APL:
 `where ['fields.service'] == "api"`. Both are easy to get wrong without
 noticing, because the query still succeeds and simply returns blank columns.
+
+### The score is a fitted model, not a formula someone chose
+
+`scoring.ts` is a logistic regression whose coefficients were fitted against
+81,846 tier 1–2 matches from 2023 onward, trained on 2023–24 and tested on
+13,107 matches from 2025 that it never saw. It scores **58.2%** there, against
+**57.0%** for the formula it replaced and **52.2%** for always picking Radiant.
+
+It outputs a probability. The old version produced two opaque numbers whose
+difference was called a margin; a probability can be checked against what
+happened and compared with a bookmaker's price.
+
+Three params, in order of weight: **hero win rate** (0.331), **hero matchup**
+(0.160) and **games on the hero** (0.054). A coefficient is only valid
+alongside the params it was fitted with — adding a fourth means refitting all
+four, not tuning the new one.
+
+**Team strength is deliberately absent.** A team rating measures which side is
+better, which is exactly what a bookmaker prices; a model built on it agrees
+with the favourite and earns short odds. This one looks only at the players and
+the heroes they picked, so a disagreement with the market comes from something
+the market may not have weighed. Including a rating measured 61.6% against this
+model's 59.4% — about two points of accuracy, given up on purpose.
+
+Hero synergy — how a side's own five heroes work together — was fitted and made
+the model slightly worse. Its absence is a result too.
+
+Two things changed because the data said so, and both are worth not undoing:
+
+- **Hero familiarity is gone.** The old `100 / heroRank` term scored 51.2%
+  alone and never improved as it grew more confident. It was 20% of the score
+  and contributed nothing.
+- **A thin record is shrunk.** One win from one game used to read as 100%; it
+  now reads as 55%, and a real record still dominates by twenty games.
+
+**Every prediction records `modelVersion`.** `marginPercent` means a different
+thing under this model than the last one, so the accuracy endpoint filters on
+it. Without that, two scales would be averaged and the answer would be quietly
+wrong.
+
+The reasoning, the params that were rejected, and what production still lacks —
+team strength and the hero matchup matrix, both bigger wins than anything above
+— are in [dota-bet-analytics-todo.md](dota-bet-analytics-todo.md).
+
+### The matchup matrix is counted, not replayed
+
+`hero_matchups` holds one document per hero with its record against every
+other. Unlike team ratings this is **not path-dependent** — it is a count, so
+the order matches were played does not matter and the database can do the
+counting. That makes the rebuild a handful of aggregate queries rather than a
+replay of two million pairings.
+
+**One query per half-year, not one for everything.** The self-join needed here
+exceeds OpenDota's query timeout when asked for three years at once; windowed,
+each returns in about two seconds.
+
+`games` is never queried. A pair's total is simply the number of times each
+side beat the other, so it is derived after the fact rather than asked for —
+which halves the work.
+
+Each cell is shrunk toward 50% by its own sample size. Without that a 2–0
+record between two rarely-picked heroes would read as a hard counter.
+
+### The report shows its own accuracy from the first settled prediction
+
+The Telegram message carries how past calls at this confidence turned out, with
+the sample size next to it. It is shown from the very first one — `(2 settled)`
+says plainly that it means nothing yet, and hiding the line until it is
+trustworthy would mean never seeing whether it is working.
+
+### `heroWinRate` counts pubs as well as official matches
+
+It comes from OpenDota's `/players/{id}/heroes`, which totals **every** match
+an account has played — ranked pubs, scrims and official games together. There
+is no way to separate them from that endpoint; doing so would need each
+player's full match history, which is ten more calls per prediction.
+
+The mix varies wildly by player. Two pro accounts sampled: one had 83% ranked
+pubs in its recent history, the other 98% non-pub. So "60% on Storm Spirit"
+does not mean the same thing for both.
+
+**This is accepted rather than tolerated.** The param is standing in for how
+comfortable a player is on a hero, and a pub game counts toward that as much as
+an official one does. It would be a problem if the param claimed to measure
+professional performance. It does not.
+
+A thin record is pulled toward even — `(wins + 5) / (games + 10)` — so one win
+from one game reads as 55% rather than 100%. By about twenty games the real
+record dominates.
 
 ### A prediction records the delay it was made under
 

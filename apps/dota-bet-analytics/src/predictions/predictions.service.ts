@@ -4,12 +4,13 @@ import type { Model } from 'mongoose';
 
 import { mapWithLimit } from '../common/concurrency.js';
 import type { SteamLiveGame, SteamScoreboardSide } from '../discovery/steam.types.js';
+import { HeroMatchupsService } from '../hero-matchups/hero-matchups.service.js';
 import { HeroesService } from '../heroes/heroes.service.js';
 import { AppLogger } from '../logger/logger.service.js';
 import { OpenDotaService } from '../opendota/opendota.service.js';
 import { ProPlayersService } from '../pro-players/pro-players.service.js';
 import { Prediction, type PredictionPlayer } from './prediction.schema.js';
-import { pick, scoreSide, type PlayerHeroStats } from './scoring.js';
+import { MODEL_VERSION, pick, scoreSide, type PlayerHeroStats } from './scoring.js';
 
 /** OpenDota's free tier allows 60 requests a minute; ten players cost twenty. */
 const OPENDOTA_CONCURRENCY = 3;
@@ -20,6 +21,8 @@ export interface PredictionContext {
   leagueName?: string;
   radiantTeamName?: string;
   direTeamName?: string;
+  radiantTeamId?: number;
+  direTeamId?: number;
   streamDelaySeconds?: number;
 }
 
@@ -30,6 +33,7 @@ export class PredictionsService {
     private readonly openDota: OpenDotaService,
     private readonly heroes: HeroesService,
     private readonly proPlayers: ProPlayersService,
+    private readonly heroMatchups: HeroMatchupsService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -56,9 +60,16 @@ export class PredictionsService {
       this.buildPlayers(direSide),
     ]);
 
-    const radiant = scoreSide(radiantPlayers.map(toStats));
-    const dire = scoreSide(direPlayers.map(toStats));
-    const outcome = pick(radiant.score, dire.score);
+    const radiantHeroes = radiantPlayers.map((p) => p.heroId);
+    const direHeroes = direPlayers.map((p) => p.heroId);
+    const [radiantMatchup, direMatchup] = await Promise.all([
+      this.heroMatchups.matchupFor(radiantHeroes, direHeroes),
+      this.heroMatchups.matchupFor(direHeroes, radiantHeroes),
+    ]);
+
+    const radiant = scoreSide(radiantPlayers.map(toStats), radiantMatchup);
+    const dire = scoreSide(direPlayers.map(toStats), direMatchup);
+    const outcome = pick(radiant, dire);
 
     const complete = [...radiantPlayers, ...direPlayers].every((player) => !player.missing);
     if (!complete) {
@@ -76,11 +87,17 @@ export class PredictionsService {
         {
           $set: {
             ...context,
-            radiantScore: radiant.score,
-            direScore: dire.score,
+            /* Kept as the headline number for each side: the mean shrunk win
+               rate of its five players, which is what the probability is
+               built from. */
+            radiantScore: outcome.radiantScore,
+            direScore: outcome.direScore,
             favoured: outcome.favoured,
             margin: outcome.margin,
             marginPercent: outcome.marginPercent,
+            radiantMatchup: radiant.heroMatchup,
+            direMatchup: dire.heroMatchup,
+            modelVersion: MODEL_VERSION,
             radiantPlayers,
             direPlayers,
             complete,
@@ -96,8 +113,8 @@ export class PredictionsService {
       matchId: context.matchId,
       radiant: context.radiantTeamName,
       dire: context.direTeamName,
-      radiantScore: radiant.score,
-      direScore: dire.score,
+      radiantScore: outcome.radiantScore,
+      direScore: outcome.direScore,
       favoured: outcome.favoured,
       marginPercent: outcome.marginPercent,
       complete,
@@ -131,6 +148,7 @@ export class PredictionsService {
         winRate: null,
         heroRank: null,
         gamesOnHero: 0,
+        winsOnHero: 0,
         missing: false,
       };
 
@@ -152,6 +170,7 @@ export class PredictionsService {
           winRate: record.winRate,
           heroRank: record.heroRank,
           gamesOnHero: record.games,
+          winsOnHero: record.wins,
         };
       } catch (error) {
         /* Marked rather than swallowed. The old app turned this into a silent
@@ -229,7 +248,14 @@ export class PredictionsService {
   /** Accuracy over predictions whose winner is known. */
   async accuracy(minMarginPercent = 0) {
     const settled = await this.model
-      .find({ winner: { $ne: null }, complete: true, marginPercent: { $gte: minMarginPercent } })
+      /* One model at a time: `marginPercent` is not comparable across
+         versions, so mixing them would average two different scales. */
+      .find({
+        winner: { $ne: null },
+        complete: true,
+        modelVersion: MODEL_VERSION,
+        marginPercent: { $gte: minMarginPercent },
+      })
       .select('correct -_id')
       .lean<{ correct: boolean | null }[]>()
       .exec();
@@ -252,7 +278,7 @@ function toStats(player: PredictionPlayer): PlayerHeroStats {
     accountId: player.accountId,
     heroId: player.heroId,
     winRate: player.winRate,
-    heroRank: player.heroRank,
+    winsOnHero: player.winsOnHero,
     gamesOnHero: player.gamesOnHero,
     missing: player.missing,
   };

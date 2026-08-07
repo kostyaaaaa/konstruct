@@ -1,0 +1,3 @@
+# Regenerable: `node 01-fetch-matches.mjs` rebuilds it from OpenDota.
+# Large, and not app data — see README.md.
+data/

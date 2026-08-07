@@ -7,13 +7,6 @@ export interface Calibration {
   settled: number;
 }
 
-/**
- * Below this, the accuracy figure says more about the sample than the model.
- * Ten is not a statistical threshold, just a point where the number stops
- * being actively misleading.
- */
-const MIN_SETTLED_FOR_CALIBRATION = 10;
-
 /** `900` -> `15m`. Under a minute keeps its unit, so a 10s league is not `0m`. */
 export function formatDelay(seconds: number): string {
   return seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;
@@ -59,14 +52,11 @@ export function buildReport(
     },
   ];
 
-  /* Only shown once enough predictions have settled to mean anything. An
-     accuracy built on two matches reads as authoritative and is noise. */
+  /* Shown from the first settled prediction. The sample size is printed
+     alongside it, so "(2 settled)" carries its own warning — hiding the line
+     until it is trustworthy just means never seeing whether it works. */
   const { calibration } = options;
-  if (
-    calibration &&
-    calibration.accuracyPercent !== null &&
-    calibration.settled >= MIN_SETTLED_FOR_CALIBRATION
-  ) {
+  if (calibration && calibration.accuracyPercent !== null) {
     blocks.push({
       type: 'blockquote',
       blocks: [

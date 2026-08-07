@@ -43,6 +43,10 @@ export class PredictionPlayer {
   @Prop({ default: 0 })
   gamesOnHero!: number;
 
+  /** Wins on this hero. A percentage alone cannot be shrunk toward even. */
+  @Prop({ default: 0 })
+  winsOnHero!: number;
+
   @Prop()
   leaderboardRank?: number;
 
@@ -93,9 +97,27 @@ export class Prediction {
   @Prop({ default: 0 })
   margin!: number;
 
-  /** Margin as a share of the larger score, so matches are comparable. */
+  /** The gap between the two scores, as a share of the larger one. */
   @Prop({ default: 0 })
   marginPercent!: number;
+
+  /** The draft advantage each side had, 0-100. 50 is an even draft. */
+  @Prop()
+  radiantMatchup?: number;
+
+  @Prop()
+  direMatchup?: number;
+
+  /**
+   * Which model produced this row.
+   *
+   * `marginPercent` means something different under the probability model than
+   * it did under the old two-score formula. Averaging accuracy across both
+   * would silently mix two scales, so every query that compares predictions
+   * filters on this.
+   */
+  @Prop({ default: 1, index: true })
+  modelVersion!: number;
 
   @Prop({ type: [PredictionPlayerSchema], default: [] })
   radiantPlayers!: PredictionPlayer[];

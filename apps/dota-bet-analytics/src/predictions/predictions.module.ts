@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { HeroMatchupsModule } from '../hero-matchups/hero-matchups.module.js';
 import { HeroesModule } from '../heroes/heroes.module.js';
 import { OpenDotaModule } from '../opendota/opendota.module.js';
 import { ProPlayersModule } from '../pro-players/pro-players.module.js';
@@ -13,6 +14,7 @@ import { PredictionsService } from './predictions.service.js';
     MongooseModule.forFeature([{ name: Prediction.name, schema: PredictionSchema }]),
     OpenDotaModule,
     HeroesModule,
+    HeroMatchupsModule,
     ProPlayersModule,
   ],
   controllers: [PredictionsController],

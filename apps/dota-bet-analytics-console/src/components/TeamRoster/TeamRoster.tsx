@@ -126,7 +126,7 @@ export function TeamRoster({ side, teamName, score, players, favoured }: TeamRos
                   </Hint>
                   <div className="text-faint">
                     <Hint
-                      text={`Familiarity: this is their ${ordinal(player.heroRank)} most-played hero, with ${player.gamesOnHero} games on it. A lower number is a hero they know well, and it is worth a fifth of the team score.`}
+                      text={`This is their ${ordinal(player.heroRank)} most-played hero, with ${player.gamesOnHero} games on it. The score uses the game count, not the rank — rank was tested and predicted nothing.`}
                     >
                       #{player.heroRank} · {player.gamesOnHero}g
                     </Hint>

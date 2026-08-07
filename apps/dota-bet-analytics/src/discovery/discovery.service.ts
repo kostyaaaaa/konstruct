@@ -227,6 +227,8 @@ export class DiscoveryService {
           leagueName: league?.name,
           radiantTeamName: match.radiantTeamName,
           direTeamName: match.direTeamName,
+          radiantTeamId: match.radiantTeamId,
+          direTeamId: match.direTeamId,
           streamDelaySeconds: match.streamDelaySeconds,
         });
 

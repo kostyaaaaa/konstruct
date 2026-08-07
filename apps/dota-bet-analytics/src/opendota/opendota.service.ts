@@ -57,6 +57,33 @@ export class OpenDotaService {
   }
 
   /**
+   * Runs read-only SQL against OpenDota's own database.
+   *
+   * The REST API cannot answer "every professional match since 2023 with its
+   * result" without tens of thousands of calls. This answers it in one, which
+   * is what makes rebuilding team ratings from history practical.
+   *
+   * A long timeout: these are real queries over a large table, not lookups.
+   */
+  async explorer<T>(sql: string): Promise<T[]> {
+    const url = `https://api.opendota.com/api/explorer?sql=${encodeURIComponent(sql)}`;
+    const body = await fetchJson<{ rows?: T[]; err?: unknown }>(url, {
+      observer: this.observer,
+      timeoutMs: 180_000,
+      /* A malformed query fails the same way every time; retrying it only
+         spends someone else's database. */
+      retries: 1,
+    });
+
+    if (body.err) {
+      throw new Error(
+        `OpenDota explorer rejected the query: ${JSON.stringify(body.err).slice(0, 200)}`,
+      );
+    }
+    return body.rows ?? [];
+  }
+
+  /**
    * Every registered professional player.
    *
    * One large response — thousands of rows — so it is synced on a schedule
