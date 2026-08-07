@@ -5,11 +5,22 @@ import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
-const LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+/**
+ * No `debug` tab, deliberately.
+ *
+ * The filter is cumulative — a level shows itself and everything above it — so
+ * `debug` could only ever differ from `info` by including debug lines. The
+ * backend leaves `LOG_LEVEL` at `info`, so it emits none: seven days of the
+ * dataset held 1,720 info, 39 warn, 16 error and zero debug. The tab showed
+ * the info tab's output under a different name.
+ *
+ * The API still serves `level=debug`, so raising `LOG_LEVEL` on a machine that
+ * wants the per-poll detail loses nothing but this shortcut.
+ */
+const LEVELS = ['info', 'warn', 'error'] as const;
 const ENVS = ['all', 'dev', 'prod'] as const;
 
 const LEVEL_CLASS: Record<string, string> = {
-  debug: 'text-faint',
   info: 'text-muted',
   warn: 'text-warn',
   error: 'text-bad',

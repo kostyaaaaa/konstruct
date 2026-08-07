@@ -178,15 +178,23 @@ export const api = {
 };
 
 /** Writes. Used only from server actions. */
-export async function post(path: string): Promise<boolean> {
+/**
+ * Returns the outcome rather than throwing, so a failed control action
+ * degrades the page instead of taking it down.
+ *
+ * `status` is carried out so a log line can say *why* it failed — a 404 from a
+ * renamed worker and an unreachable API are the same `false` otherwise, and
+ * telling them apart is the whole point of logging this.
+ */
+export async function post(path: string): Promise<{ ok: boolean; status?: number }> {
   try {
     const response = await fetch(`${baseUrl()}${path}`, {
       method: 'POST',
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
-    return response.ok;
+    return { ok: response.ok, status: response.status };
   } catch {
-    return false;
+    return { ok: false };
   }
 }

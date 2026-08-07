@@ -256,8 +256,40 @@ prediction and shown in both the report and the console, because it is the
 difference between a pick made at draft time and one made fifteen minutes into
 the game.
 
-The limitation itself, the measurements behind it, and what might be done about
-it are in [dota-bet-analytics-todo.md](dota-bet-analytics-todo.md).
+**The delay is per league, and it varies.** Sampled across 47 live games:
+10s, 120s, 300s and 900s. A 10-second league is effectively live and the
+prediction lands at draft time; a 900-second one does not. A big event that
+chooses no delay costs nothing to support — the value is read per match and
+nothing assumes it is large.
+
+**This has been accepted, and there is nothing better available.** Checked, so
+it is not re-checked:
+
+- **OpenDota is not an earlier source.** Its `/matches/<id>` has nothing for a
+  live match, its `/live` carried one league game against Steam's 49, that
+  entry's `game_time` was frozen across three fetches, and it reports the same
+  `delay`. It reads the same Valve game coordinator, so it inherits the same
+  delay.
+- **Valve's `GetRealtimeStats` exists and works**, returning far richer data
+  than the league feed — but it takes a `server_steam_id`, and
+  `GetLiveLeagueGames` no longer returns one. `lobby_id` and `match_id` are
+  both an HTTP 400. The only public source left is `GetTopLiveGame`, ten games
+  ranked by MMR, sampled eight times with usually zero league games in it.
+- **Betting services do not use this API at all.** They license official feeds
+  from providers with direct tournament-organiser partnerships, taken straight
+  off the game server. The delay is not a technical problem they solved; it is
+  applied to the public path deliberately and bypassed by contract.
+
+If a route to a `server_steam_id` ever reappears, `GetRealtimeStats` is the
+endpoint worth revisiting.
+
+### Aggregates come from OpenDota because Valve has none
+
+Valve's API returns **raw matches**, not aggregates. There is no Valve endpoint
+for "this player's win rate on this hero" — computing it would mean pulling
+match history per player and keeping a store of our own, which is a different
+app, not a different URL. That is why the split is Valve for live state and
+OpenDota for player and league facts.
 
 ### Steam names are not player names
 

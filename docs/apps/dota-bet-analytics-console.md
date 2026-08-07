@@ -21,7 +21,7 @@ and no data: everything comes from the API over HTTP.
 | `/matches`          | Live and recently ended matches                                 |
 | `/matches/:matchId` | Net worth graph, and the prediction with both full rosters      |
 | `/predictions`      | Every prediction, and accuracy at a chosen confidence threshold |
-| `/logs`             | Recent Axiom events, filtered by level                          |
+| `/logs`             | Recent Axiom events, filtered by level and environment          |
 
 ## Owns
 
@@ -33,6 +33,8 @@ to it.
 
 - Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4.
 - The dota-bet-analytics API, at `API_URL`.
+- **`@konstruct/logger`** — `src/lib/logger.ts`, server side only. See
+  [Only the writes are logged](#only-the-writes-are-logged).
 - `@konstruct/eslint-config/next`; Prettier from the root.
 
 ## Run
@@ -59,7 +61,13 @@ instead of blanking the page.
 | `PORT`            | `4000`                                    |
 | `API_URL`         | Where the API lives                       |
 | `AXIOM_DATASET`   | `dota-bet-analytics-console`              |
+| `AXIOM_TOKEN`     | Ingest token for that dataset             |
+| `AXIOM_EDGE`      | `us-east-1.aws.edge.axiom.co`             |
 | `NEXT_PUBLIC_ENV` | Same as `ENV`, readable from browser code |
+
+**Without `AXIOM_TOKEN` the console still runs**, and logs to stdout only —
+which on Vercel means the events are gone the moment the function is recycled.
+The logger warns about it at startup when `NODE_ENV` is `production`.
 
 ## Deploy
 
@@ -164,6 +172,30 @@ problem and works before hydration.
 `Hint` is for anything the reader has to be told; a plain `title` is enough for
 text that already explains itself, like a status word.
 
+### Only the writes are logged
+
+The console logs three events, all of them user-initiated writes: pausing a
+worker, resuming one, and asking for a backfill run. Nothing else.
+
+Every other thing the console does is a read, and the API has already recorded
+that work from its own side — logging it again would put the same event in two
+datasets and make counting anything a matter of remembering which one to trust.
+A write is different: a paused worker looks exactly like a broken one, and
+without a line here there is no record that a person asked for it.
+
+Each action logs whether the API accepted it, with the status code when it did
+not. A 404 from a renamed worker and an unreachable API are otherwise the same
+silent failure.
+
+**Every action flushes before it returns.** Axiom sends in batches and Vercel
+freezes a function the instant it responds, so an unflushed event is lost
+without a trace. That is why the actions `await flushLogs()` rather than
+letting the batch drain on its own.
+
+There is no `/api/logs` route and no client logger, because nothing logs from
+the browser. Add both together if that ever changes — the client logger posts
+to that route and does nothing without it.
+
 ### Every page is dynamic
 
 Each route sets `dynamic = 'force-dynamic'` and every fetch uses
@@ -203,6 +235,17 @@ colours are written as hex and have to be kept in step with `globals.css` by
 hand.
 
 Changing the mark means editing all three.
+
+### The logs screen has no debug tab
+
+The level filter is cumulative — each level shows itself and everything above
+it — so a `debug` tab could only differ from `info` by including debug lines.
+The backend leaves `LOG_LEVEL` at `info` and therefore emits none: a week of
+the dataset held 1,720 info, 39 warn, 16 error and **zero** debug. The tab was
+the info tab under another name.
+
+The API still accepts `level=debug`. Raising `LOG_LEVEL` on a machine that
+wants the per-poll detail still works; it just has no shortcut in the UI.
 
 ### The logs screen holds no token
 
