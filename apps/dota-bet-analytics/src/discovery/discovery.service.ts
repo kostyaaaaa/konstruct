@@ -130,7 +130,16 @@ export class DiscoveryService {
     const games = payload.result?.games ?? [];
     this.lastPollSawGames = games.length;
 
-    const tracked = await this.leagues.trackedLeagueIds();
+    /* One lookup per distinct league in the feed, cached after the first
+       time — a poll sees the same dozen tournaments over and over. */
+    const leagueIds = [...new Set(games.map((game) => game.league_id).filter(Boolean))];
+    const tracked = new Set<number>();
+    for (const id of leagueIds) {
+      if (await this.leagues.isTracked(id!)) {
+        tracked.add(id!);
+      }
+    }
+
     const observed: ObservedMatch[] = [];
     const trackedGames: SteamLiveGame[] = [];
 

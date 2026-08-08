@@ -247,23 +247,7 @@ export class PredictionsService {
   }
 
   /** Accuracy over predictions whose winner is known. */
-  /**
-   * Accuracy over settled predictions.
-   *
-   * `tier` narrows to a population: `fitted` is the premium and professional
-   * leagues the model was trained on, `extra` is everything added by league id
-   * regardless of tier. Averaging the two would report a number for a mixture
-   * nobody bets on.
-   */
-  async accuracy(minMarginPercent = 0, tier?: 'fitted' | 'extra') {
-    const FITTED = ['premium', 'professional'];
-    const tierFilter =
-      tier === 'fitted'
-        ? { leagueTier: { $in: FITTED } }
-        : tier === 'extra'
-          ? { leagueTier: { $nin: FITTED } }
-          : {};
-
+  async accuracy(minMarginPercent = 0) {
     const settled = await this.model
       /* One model at a time: `marginPercent` is not comparable across
          versions, so mixing them would average two different scales. */
@@ -272,7 +256,6 @@ export class PredictionsService {
         complete: true,
         modelVersion: MODEL_VERSION,
         marginPercent: { $gte: minMarginPercent },
-        ...tierFilter,
       })
       .select('correct -_id')
       .lean<{ correct: boolean | null }[]>()
@@ -282,7 +265,6 @@ export class PredictionsService {
 
     return {
       minMarginPercent,
-      tier: tier ?? 'all',
       settled: settled.length,
       correct,
       incorrect: settled.length - correct,

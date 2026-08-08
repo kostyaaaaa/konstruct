@@ -20,16 +20,16 @@ export const envSchema = z.object({
 
   /* Live pro match discovery. */
   STEAM_API_KEY: z.string().min(1),
-  /* OpenDota, for league tier and post-match backfill. No key needed. */
+  /* OpenDota, for league metadata and post-match backfill. No key needed. */
   OPENDOTA_API_URL: z.string().url().default('https://api.opendota.com/api'),
-  /* League ids to track regardless of tier, comma separated.
+  /* Smallest prize pool, in dollars, worth tracking.
 
-     OpenDota's `excluded` tier is a judgement, and an uneven one: it holds
-     FACEIT pickup games and real tournaments side by side. Tracking the whole
-     tier would multiply the snapshot archive by roughly seventeen, most of it
-     unnamed pub teams. This is the escape hatch for the handful worth having,
-     and it is a variable so adding one needs no deploy. */
-  EXTRA_LEAGUE_IDS: z.string().optional(),
+     This is the whole filter between a usable feed and noise. A tier label was
+     tried first and proved unreliable: OpenDota called four of eight
+     Dotabuff-professional tournaments `excluded`. Prize money comes from Valve
+     and cannot be applied inconsistently — on one evening's feed, every league
+     with money was worth having and all twelve without were pickup games. */
+  MIN_PRIZE_POOL: z.coerce.number().int().min(0).default(10_000),
 
   /* The prediction report, posted to a Telegram channel.
 

@@ -69,11 +69,11 @@ export class Prediction {
   leagueName?: string;
 
   /**
-   * The league's tier, recorded at prediction time.
+   * OpenDota's tier for the league, recorded at prediction time.
    *
-   * `premium` and `professional` are what the model was fitted on. Anything
-   * else got here through `EXTRA_LEAGUE_IDS` and is outside that population,
-   * so its accuracy has to be countable separately rather than averaged in.
+   * Context only — leagues are chosen by prize money, not by this. It is kept
+   * because it is what the model was fitted against, so it stays useful if the
+   * question of population ever comes back.
    */
   @Prop({ index: true })
   leagueTier?: string;

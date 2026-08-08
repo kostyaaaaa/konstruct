@@ -3,75 +3,41 @@ import Link from 'next/link';
 import { Hint } from '@/components/Hint';
 import { Panel } from '@/components/Panel';
 import { Stat } from '@/components/Stat';
-import { api, type TierGroup } from '@/lib/api';
+import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
 const THRESHOLDS = [0, 5, 8, 10, 12, 15];
 
-/**
- * Which leagues an accuracy figure covers.
- *
- * The model was fitted on premium and professional matches. Anything tracked
- * through `EXTRA_LEAGUE_IDS` is a different standard of play, so it is counted
- * separately rather than averaged into the headline.
- */
-const TIERS = [
-  { key: 'all', label: 'all leagues' },
-  { key: 'fitted', label: 'tier 1-2' },
-  { key: 'extra', label: 'other' },
-] as const;
-
 export default async function PredictionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ margin?: string; tier?: string }>;
+  searchParams: Promise<{ margin?: string }>;
 }) {
-  const { margin, tier } = await searchParams;
+  const { margin } = await searchParams;
   const threshold = Number(margin ?? 0) || 0;
-  const group = TIERS.some((t) => t.key === tier) ? (tier as TierGroup) : 'all';
 
-  const [accuracy, list] = await Promise.all([api.accuracy(threshold, group), api.predictions()]);
-  const href = (next: { margin?: number; tier?: string }) =>
-    `/predictions?margin=${next.margin ?? threshold}&tier=${next.tier ?? group}`;
+  const [accuracy, list] = await Promise.all([api.accuracy(threshold), api.predictions()]);
 
   return (
     <div className="space-y-6">
       <Panel
         title="Accuracy"
         action={
-          <div className="flex flex-wrap items-center gap-3 max-sm:gap-2">
-            <div className="flex flex-wrap gap-1">
-              {TIERS.map((t) => (
-                <Link
-                  key={t.key}
-                  href={href({ tier: t.key })}
-                  className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                    t.key === group
-                      ? 'bg-field text-ink'
-                      : 'text-faint hover:bg-surface hover:text-muted'
-                  }`}
-                >
-                  {t.label}
-                </Link>
-              ))}
-            </div>
-            <span className="text-line-strong">|</span>
-            <div className="flex flex-wrap gap-1">
-              {THRESHOLDS.map((value) => (
-                <Link
-                  key={value}
-                  href={href({ margin: value })}
-                  className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                    value === threshold
-                      ? 'bg-field text-ink'
-                      : 'text-faint hover:bg-surface hover:text-muted'
-                  }`}
-                >
-                  ≥{value}%
-                </Link>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-1">
+            {THRESHOLDS.map((value) => (
+              <Link
+                key={value}
+                href={value === 0 ? '/predictions' : `/predictions?margin=${value}`}
+                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                  value === threshold
+                    ? 'bg-field text-ink'
+                    : 'text-faint hover:bg-surface hover:text-muted'
+                }`}
+              >
+                ≥{value}%
+              </Link>
+            ))}
           </div>
         }
       >
@@ -111,9 +77,7 @@ export default async function PredictionsPage({
             <p className="mt-4 text-xs text-faint">
               Counts only predictions whose match has finished and whose player stats were complete.
               The margin filter is the confidence threshold — raising it keeps only the predictions
-              where the two scores were furthest apart. <strong>tier 1-2</strong> is the premium and
-              professional population the model was fitted on; <strong>other</strong> is anything
-              tracked by league id, where it has never been tested.
+              where the two scores were furthest apart.
             </p>
           </>
         ) : (
@@ -164,16 +128,6 @@ export default async function PredictionsPage({
                       <Hint text="How far apart the two scores are, as a share of the higher one. This is the confidence in the prediction — a bigger gap is a stronger call.">
                         {prediction.marginPercent}% margin
                       </Hint>
-                      {prediction.leagueTier &&
-                        !['premium', 'professional'].includes(prediction.leagueTier) && (
-                          <span
-                            className="text-faint"
-                            title={`${prediction.leagueName ?? 'This league'} is outside the tier 1-2 population the model was fitted on. Its record is counted separately.`}
-                          >
-                            {' '}
-                            · outside tier 1-2
-                          </span>
-                        )}
                       {!prediction.complete && <span className="text-warn"> · incomplete</span>}
                     </div>
                   </div>

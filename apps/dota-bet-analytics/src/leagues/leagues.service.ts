@@ -8,13 +8,20 @@ import { HttpObserver } from '../common/http-observer.js';
 import { fetchJson } from '../common/http.js';
 import type { Env } from '../config/env.schema.js';
 import { AppLogger } from '../logger/logger.service.js';
-import { League, TRACKED_TIERS } from './league.schema.js';
+import { League } from './league.schema.js';
 
 interface OpenDotaLeague {
   leagueid: number;
   name: string;
   tier?: string;
 }
+
+interface PrizePoolResponse {
+  result?: { prize_pool?: number; status?: number };
+}
+
+/** Prize pools barely move once an event is announced. */
+const PRIZE_POOL_TTL_MS = 7 * 24 * 3600 * 1000;
 
 @Injectable()
 export class LeaguesService implements OnModuleInit {
@@ -37,37 +44,62 @@ export class LeaguesService implements OnModuleInit {
     await this.sync();
   }
 
-  /** The ids worth tracking, for filtering the live feed. */
-  async trackedLeagueIds(): Promise<Set<number>> {
-    const leagues = await this.leagueModel
-      .find({ tier: { $in: TRACKED_TIERS } })
-      .select('leagueId')
-      .lean<{ leagueId: number }[]>()
-      .exec();
+  /**
+   * Whether a league is worth tracking, by prize money.
+   *
+   * Looked up from Valve the first time a league appears and cached, so the
+   * cost is one call per new tournament rather than one per poll. A league we
+   * cannot price is not tracked — better to miss an event than to fill the
+   * archive with pickup games.
+   */
+  async isTracked(leagueId: number): Promise<boolean> {
+    const minimum = this.config.get('MIN_PRIZE_POOL', { infer: true });
+    const league = await this.leagueModel.findOne({ leagueId }).lean<League>().exec();
 
-    const tracked = new Set(leagues.map((league) => league.leagueId));
+    const fresh =
+      league?.prizePoolAt &&
+      Date.now() - new Date(league.prizePoolAt).getTime() < PRIZE_POOL_TTL_MS;
 
-    /* Added whether or not the league is in the database — a brand new event
-       may not have been synced yet, and waiting a day for it defeats the
-       point of an escape hatch. */
-    for (const id of this.extraLeagueIds()) {
-      tracked.add(id);
+    if (fresh) {
+      return (league.prizePool ?? 0) >= minimum;
     }
 
-    return tracked;
+    const prizePool = await this.fetchPrizePool(leagueId);
+    if (prizePool === null) {
+      /* Valve did not answer. Fall back to whatever we knew rather than
+         dropping a tournament because one request failed. */
+      return (league?.prizePool ?? 0) >= minimum;
+    }
+
+    await this.leagueModel.updateOne(
+      { leagueId },
+      {
+        $set: { leagueId, prizePool, prizePoolAt: new Date() },
+        $setOnInsert: { name: String(leagueId) },
+      },
+      { upsert: true },
+    );
+
+    return prizePool >= minimum;
   }
 
-  /** Ids from `EXTRA_LEAGUE_IDS`, ignoring anything that is not a number. */
-  private extraLeagueIds(): number[] {
-    const raw = this.config.get('EXTRA_LEAGUE_IDS', { infer: true });
-    if (!raw) {
-      return [];
+  /** Dollars, or null when Valve could not be reached. */
+  private async fetchPrizePool(leagueId: number): Promise<number | null> {
+    const key = this.config.get('STEAM_API_KEY', { infer: true });
+    try {
+      const body = await fetchJson<PrizePoolResponse>(
+        `https://api.steampowered.com/IEconDOTA2_570/GetTournamentPrizePool/v1/?key=${key}&leagueid=${leagueId}`,
+        { observer: this.http.for('steam'), retries: 1 },
+      );
+      return body.result?.prize_pool ?? 0;
+    } catch (error) {
+      this.logger.warn('prize pool lookup failed', {
+        context: 'Leagues',
+        leagueId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return null;
     }
-
-    return raw
-      .split(',')
-      .map((part) => Number(part.trim()))
-      .filter((id) => Number.isInteger(id) && id > 0);
   }
 
   async findByLeagueId(leagueId: number): Promise<League | null> {
@@ -105,8 +137,12 @@ export class LeaguesService implements OnModuleInit {
       { ordered: false },
     );
 
-    const tracked = await this.leagueModel.countDocuments({ tier: { $in: TRACKED_TIERS } });
-    this.logger.log('leagues synced', { context: 'Leagues', count: leagues.length, tracked });
+    /* Prize pools are looked up lazily as leagues appear in the feed, so this
+       counts what we have priced so far rather than what is trackable. */
+    const priced = await this.leagueModel.countDocuments({
+      prizePool: { $gte: this.config.get('MIN_PRIZE_POOL', { infer: true }) },
+    });
+    this.logger.log('leagues synced', { context: 'Leagues', count: leagues.length, priced });
     return leagues.length;
   }
 }

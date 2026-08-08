@@ -113,7 +113,7 @@ posting reports about them to the channel.
 | `DB_NAME`            | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
 | `STEAM_API_KEY`      | Steam Web API key, server-side only                            |
 | `OPENDOTA_API_URL`   | Defaults to the public API; no key                             |
-| `EXTRA_LEAGUE_IDS`   | Optional. League ids to track whatever their tier              |
+| `MIN_PRIZE_POOL`     | Smallest prize pool worth tracking. Defaults to `10000`        |
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather                                      |
 | `TELEGRAM_CHAT_ID`   | Channel id, or `@channelusername`                              |
 | `CONSOLE_URL`        | Optional. Where the report's "View match" link points          |
@@ -319,33 +319,34 @@ the sample size next to it. It is shown from the very first one — `(2 settled)
 says plainly that it means nothing yet, and hiding the line until it is
 trustworthy would mean never seeing whether it is working.
 
-### Leagues added by id are counted separately
+### Which tournaments are tracked: prize money, not tier
 
-Every prediction records `leagueTier` as it was at the time. `premium` and
-`professional` are the population the model was fitted on; anything that got in
-through `EXTRA_LEAGUE_IDS` is a different standard of play and has never been
-tested.
+Discovery keeps a league when Valve reports a prize pool of at least
+`MIN_PRIZE_POOL`, default $10,000.
 
-`GET /predictions/accuracy?tier=fitted|extra` splits them, and the console has
-the same filter. Averaging the two would report a number for a mixture nobody
-bets on — and it would let a good record in one hide a bad one in the other.
+**A tier label was tried first and did not work.** OpenDota classifies leagues
+as premium, professional, excluded or amateur, and the label is reliable at the
+extremes — The International is `premium` — but close to a coin flip below
+that. Of eight tournaments Dotabuff lists as professional, OpenDota called four
+`excluded`, including Asgard Championship and Ultras Dota Pro League.
 
-### Which tournaments are tracked, and the escape hatch
+Valve does not classify tournaments at all: there is no league listing endpoint
+and no tier. Prize money is the closest thing to an objective statement it
+makes about how serious an event is, and unlike a label it cannot be applied
+inconsistently.
 
-Discovery keeps leagues OpenDota tiers as `premium` or `professional`. That
-label is OpenDota's judgement and an uneven one — its third tier, `excluded`,
-holds FACEIT pickup games and real tournaments side by side. Measured on one
-evening: 16 of 17 live games were `excluded`, of which seven were FACEIT pubs
-with unnamed teams and three were genuine events.
+It separates cleanly. Across one evening's feed, every tournament with money
+was one worth tracking and every one without was a pickup league — nine FACEIT
+games, RetosDota2, Kobold League and nine others, all at zero. Of 29 live
+games, 3 were kept.
 
-Tracking that tier wholesale would multiply the snapshot archive by roughly
-seventeen, and the archive already sets the pace against a 512 MB Atlas limit.
+Pools are fetched once per league and cached for a week, so the cost is one
+call per new tournament rather than one per poll. A failed lookup falls back to
+the last known value: better a stale figure than dropping a tournament over one
+bad request.
 
-So `EXTRA_LEAGUE_IDS` adds specific leagues by id, whatever their tier. It is a
-variable rather than a constant so a tournament can be added mid-event without
-a deploy, and ids are added whether or not the league has been synced yet — a
-brand new event will not be in the database, and waiting a day for it defeats
-the point.
+The threshold is a variable, so tightening it to only the biggest events is a
+config change with no deploy.
 
 ### `heroWinRate` counts pubs as well as official matches
 
