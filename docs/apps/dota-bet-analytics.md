@@ -319,6 +319,17 @@ the sample size next to it. It is shown from the very first one — `(2 settled)
 says plainly that it means nothing yet, and hiding the line until it is
 trustworthy would mean never seeing whether it is working.
 
+### Leagues added by id are counted separately
+
+Every prediction records `leagueTier` as it was at the time. `premium` and
+`professional` are the population the model was fitted on; anything that got in
+through `EXTRA_LEAGUE_IDS` is a different standard of play and has never been
+tested.
+
+`GET /predictions/accuracy?tier=fitted|extra` splits them, and the console has
+the same filter. Averaging the two would report a number for a mixture nobody
+bets on — and it would let a good record in one hide a bad one in the other.
+
 ### Which tournaments are tracked, and the escape hatch
 
 Discovery keeps leagues OpenDota tiers as `premium` or `professional`. That

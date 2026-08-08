@@ -50,6 +50,8 @@ const synergies = new Map(); // "a:b" (a<b) -> [games, wins]
 
 /** Most hero pairs are rare, so a cell is pulled toward 50% by its own size. */
 const PAIR_SHRINK = 0;
+/** An unseen pairing is even, not zero — production does the same. */
+const UNKNOWN_PAIR = 50;
 
 /**
  * How far back "recent" reaches, for the params that care about now rather
@@ -92,6 +94,9 @@ const allyKey = (a, b) => (a < b ? `${a}:${b}` : `${b}:${a}`);
 
 function rate(store, key) {
   const [games, wins] = store.get(key) ?? [0, 0];
+  if (games + PAIR_SHRINK === 0) {
+    return UNKNOWN_PAIR;
+  }
   return ((wins + PAIR_SHRINK * 0.5) / (games + PAIR_SHRINK)) * 100;
 }
 

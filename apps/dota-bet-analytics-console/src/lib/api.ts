@@ -93,6 +93,8 @@ export interface Prediction {
   direScore: number;
   favoured: 'radiant' | 'dire' | null;
   margin: number;
+  leagueName?: string;
+  leagueTier?: string;
   marginPercent: number;
   /** Broadcast delay on the match, in seconds. */
   streamDelaySeconds?: number;
@@ -134,7 +136,18 @@ export interface Accuracy {
   correct: number;
   incorrect: number;
   accuracyPercent: number | null;
+  tier?: string;
 }
+
+/**
+ * Which population an accuracy figure covers.
+ *
+ * `fitted` is the premium and professional leagues the model was trained on.
+ * `extra` is anything tracked by league id regardless of tier — a different
+ * standard of play, so its record is worth reading on its own rather than
+ * averaged into the headline.
+ */
+export type TierGroup = 'all' | 'fitted' | 'extra';
 
 /**
  * Every read goes through here.
@@ -173,8 +186,10 @@ export const api = {
     get<LogsResponse>(
       `/logs?level=${level}&hours=24&limit=100${env ? `&env=${encodeURIComponent(env)}` : ''}`,
     ),
-  accuracy: (minMarginPercent: number) =>
-    get<Accuracy>(`/predictions/accuracy?minMarginPercent=${minMarginPercent}`),
+  accuracy: (minMarginPercent: number, tier?: TierGroup) =>
+    get<Accuracy>(
+      `/predictions/accuracy?minMarginPercent=${minMarginPercent}${tier === 'all' || !tier ? '' : `&tier=${tier}`}`,
+    ),
 };
 
 /** Writes. Used only from server actions. */

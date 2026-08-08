@@ -225,6 +225,7 @@ export class DiscoveryService {
           matchId: match.matchId,
           leagueId: match.leagueId,
           leagueName: league?.name,
+          leagueTier: league?.tier,
           radiantTeamName: match.radiantTeamName,
           direTeamName: match.direTeamName,
           radiantTeamId: match.radiantTeamId,

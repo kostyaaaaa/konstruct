@@ -21,8 +21,12 @@ export class PredictionsController {
   @Get('accuracy')
   async accuracy(
     @Query('minMarginPercent', new DefaultValuePipe(0), ParseIntPipe) minMarginPercent: number,
+    @Query('tier') tier?: string,
   ) {
-    return this.predictions.accuracy(minMarginPercent);
+    /* Anything unrecognised means "no filter", so a stray query parameter
+       widens the answer rather than silently returning nothing. */
+    const group = tier === 'fitted' || tier === 'extra' ? tier : undefined;
+    return this.predictions.accuracy(minMarginPercent, group);
   }
 
   @Get(':matchId')

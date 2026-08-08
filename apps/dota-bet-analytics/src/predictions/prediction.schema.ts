@@ -68,6 +68,16 @@ export class Prediction {
   @Prop()
   leagueName?: string;
 
+  /**
+   * The league's tier, recorded at prediction time.
+   *
+   * `premium` and `professional` are what the model was fitted on. Anything
+   * else got here through `EXTRA_LEAGUE_IDS` and is outside that population,
+   * so its accuracy has to be countable separately rather than averaged in.
+   */
+  @Prop({ index: true })
+  leagueTier?: string;
+
   @Prop()
   radiantTeamName?: string;
 
