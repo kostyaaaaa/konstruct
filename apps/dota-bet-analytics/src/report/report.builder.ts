@@ -87,7 +87,7 @@ export function buildReport(
   if (prediction.suspicious) {
     blocks.push({
       type: 'paragraph',
-      text: marked('Thin records — two or more players have under 5 games on their hero.'),
+      text: marked('Thin records — a side’s typical player has under 20 games on their hero.'),
     });
   }
 

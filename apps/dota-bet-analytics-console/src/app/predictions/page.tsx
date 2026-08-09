@@ -168,7 +168,7 @@ export default async function PredictionsPage({
                 >
                   ✓
                 </span>
-                <Hint text="A match is flagged when two or more players on either side have fewer than five games on the hero they picked. Usually that means a new account rather than a new player — professionals appear on fresh accounts constantly, and no public API links those back. The prediction is still made and still stored; this only leaves it out of what is counted.">
+                <Hint text="A match is flagged when either side's middle player has under 20 games on the hero they picked — the median, so one specialist with hundreds of games cannot hide four unknown team-mates. Usually that means a new account rather than a new player — professionals appear on fresh accounts constantly, and no public API links those back. The prediction is still made and still stored; this only leaves it out of what is counted.">
                   Hide matches built on thin hero records
                 </Hint>
               </Link>

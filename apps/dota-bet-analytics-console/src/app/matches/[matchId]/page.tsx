@@ -114,7 +114,7 @@ export default async function MatchDetailPage({
                 )}
                 {prediction.suspicious && (
                   <div className="text-warn">
-                    <Hint text="Two or more players on a side have fewer than five games on the hero they picked. Usually that means a new account rather than a new player, and no public API links accounts back together. The prediction is still real arithmetic — it is just built on very little.">
+                    <Hint text="A side's middle player has under 20 games on the hero they picked. Usually that means a new account rather than a new player, and no public API links accounts back together. The prediction is still real arithmetic — it is just built on very little.">
                       thin records
                     </Hint>
                   </div>

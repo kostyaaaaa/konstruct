@@ -144,8 +144,8 @@ export class Prediction {
   complete!: boolean;
 
   /**
-   * True when two or more players on either side had fewer than five games on
-   * the hero they picked.
+   * True when either side's middle player had under twenty games on the hero
+   * they picked.
    *
    * Separate from `complete`, and not a worse version of it. `complete` means
    * a fetch failed — we have no data. This means the fetch worked and the data

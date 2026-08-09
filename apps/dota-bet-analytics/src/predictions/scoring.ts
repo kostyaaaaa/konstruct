@@ -126,22 +126,38 @@ function shrunkWinRate(player: PlayerHeroStats): number {
 }
 
 /**
- * Fewer games than this on the picked hero is not a record, it is a rumour.
+ * A side whose typical player has fewer games than this on their hero is not
+ * readable.
  *
  * Shrinkage already stops one win from one game reading as 100% — it enters
- * the score as 54.5%. What shrinkage cannot fix is that the number is not
- * about the player at all: professionals routinely appear on accounts created
- * months ago, so a one-game history is often a fragment of a career that lives
- * somewhere else. There is no public way to link those accounts. OpenDota
- * exposes no such endpoint and neither does Steam.
+ * the score as 54.5%. What shrinkage cannot fix is that the number is about an
+ * account rather than a person: professionals appear on accounts created
+ * months ago, and no public API links those back. OpenDota has no such
+ * endpoint across its 55, and neither does Steam.
  */
-const THIN_RECORD_GAMES = 5;
+const READABLE_MEDIAN_GAMES = 20;
 
-/** How many thin records on one side make the whole match untrustworthy. */
-const THIN_RECORDS_PER_SIDE = 2;
-
-function thinRecords(players: readonly { gamesOnHero: number }[]): number {
-  return players.filter((player) => player.gamesOnHero < THIN_RECORD_GAMES).length;
+/**
+ * The middle player's games on their picked hero.
+ *
+ * **The median, not the total, and that is the whole point.** A total is
+ * decided by whether anyone happens to be a one-trick: one player with 451
+ * games on Phoenix carries a side past any threshold while two team-mates sit
+ * on 5 and 6. It fails the other way too — five players with 40 games each, a
+ * perfectly readable draft, totals 200 and looks thin.
+ *
+ * Counting how many players are below a line has the opposite blind spot. A
+ * side of 5, 6, 6, 10 and 11 games has nobody under five and is still unknown.
+ *
+ * The median asks what a typical player on this side has, which no single
+ * team-mate can skew in either direction.
+ */
+function medianGames(players: readonly { gamesOnHero: number }[]): number {
+  if (players.length === 0) {
+    return 0;
+  }
+  const sorted = players.map((player) => player.gamesOnHero).sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
 /**
@@ -151,19 +167,16 @@ function thinRecords(players: readonly { gamesOnHero: number }[]): number {
  * scores are real arithmetic on the data we have, and throwing the row away
  * would also throw away the evidence of how such matches turn out.
  *
- * One thin record is normal — a pocket pick, a hero somebody just learned.
- * Two on the same side means half that draft is unreadable, and the side's
- * mean win rate is then mostly the shrinkage constant rather than anything
- * observed. Either side being unreadable makes the *comparison* meaningless,
- * which is why this is `||` and not `&&`.
+ * `||` rather than `&&` because the score is a comparison — one unreadable
+ * side already makes it meaningless, however well known the other is.
  */
 export function isSuspicious(
   radiantPlayers: readonly { gamesOnHero: number }[],
   direPlayers: readonly { gamesOnHero: number }[],
 ): boolean {
   return (
-    thinRecords(radiantPlayers) >= THIN_RECORDS_PER_SIDE ||
-    thinRecords(direPlayers) >= THIN_RECORDS_PER_SIDE
+    medianGames(radiantPlayers) < READABLE_MEDIAN_GAMES ||
+    medianGames(direPlayers) < READABLE_MEDIAN_GAMES
   );
 }
 
