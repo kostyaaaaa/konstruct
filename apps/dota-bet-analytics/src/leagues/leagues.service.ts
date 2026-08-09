@@ -20,6 +20,12 @@ interface PrizePoolResponse {
   result?: { prize_pool?: number; status?: number };
 }
 
+/** Whether a league is worth tracking, and what it is called. */
+export interface LeagueDecision {
+  tracked: boolean;
+  name?: string;
+}
+
 /** Prize pools barely move once an event is announced. */
 const PRIZE_POOL_TTL_MS = 7 * 24 * 3600 * 1000;
 
@@ -45,30 +51,38 @@ export class LeaguesService implements OnModuleInit {
   }
 
   /**
-   * Whether a league is worth tracking, by prize money.
+   * Whether a league is worth tracking, by prize money — and its name.
    *
    * Looked up from Valve the first time a league appears and cached, so the
    * cost is one call per new tournament rather than one per poll. A league we
    * cannot price is not tracked — better to miss an event than to fill the
    * archive with pickup games.
+   *
+   * The name rides along because the caller needs both and this already loads
+   * the whole row. Asking twice would double the queries on every poll for a
+   * field that is sitting in the document it just read.
    */
-  async isTracked(leagueId: number): Promise<boolean> {
+  async resolve(leagueId: number): Promise<LeagueDecision> {
     const minimum = this.config.get('MIN_PRIZE_POOL', { infer: true });
     const league = await this.leagueModel.findOne({ leagueId }).lean<League>().exec();
+    /* `sync` writes the id as a placeholder name for leagues OpenDota has not
+       named yet. Treated as absent so the console can fall back rather than
+       print a number twice. */
+    const name = league?.name && league.name !== String(leagueId) ? league.name.trim() : undefined;
 
     const fresh =
       league?.prizePoolAt &&
       Date.now() - new Date(league.prizePoolAt).getTime() < PRIZE_POOL_TTL_MS;
 
     if (fresh) {
-      return (league.prizePool ?? 0) >= minimum;
+      return { tracked: (league.prizePool ?? 0) >= minimum, name };
     }
 
     const prizePool = await this.fetchPrizePool(leagueId);
     if (prizePool === null) {
       /* Valve did not answer. Fall back to whatever we knew rather than
          dropping a tournament because one request failed. */
-      return (league?.prizePool ?? 0) >= minimum;
+      return { tracked: (league?.prizePool ?? 0) >= minimum, name };
     }
 
     await this.leagueModel.updateOne(
@@ -80,7 +94,7 @@ export class LeaguesService implements OnModuleInit {
       { upsert: true },
     );
 
-    return prizePool >= minimum;
+    return { tracked: prizePool >= minimum, name };
   }
 
   /** Dollars, or null when Valve could not be reached. */

@@ -28,6 +28,7 @@ export class PredictionsController {
 
   @Get()
   async recent(
+    @Query('minMarginPercent', new DefaultValuePipe(0), ParseIntPipe) minMarginPercent: number,
     @Query('league', optionalLeague) league?: number,
     @Query('includeSuspicious') includeSuspicious?: string,
   ) {
@@ -35,6 +36,7 @@ export class PredictionsController {
       50,
       league,
       parseIncludeSuspicious(includeSuspicious),
+      minMarginPercent,
     );
     return { count: predictions.length, predictions };
   }

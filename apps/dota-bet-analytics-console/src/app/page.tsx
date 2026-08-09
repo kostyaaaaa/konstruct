@@ -67,7 +67,7 @@ export default async function ControlPage() {
             label="Live matches"
             value={discovery.liveMatchCount}
             hint={`${discovery.lastPollSawGames} in feed`}
-            title={`Professional matches live right now in a tracked tier 1-2 league. The feed returned ${discovery.lastPollSawGames} games in total on the last poll; the rest are in leagues we do not track.`}
+            title={`Matches live right now in a tracked tournament — one whose prize pool clears the configured minimum. The feed returned ${discovery.lastPollSawGames} games in total on the last poll; the rest are in leagues we do not track.`}
           />
           <Stat
             label="Snapshots / poll"
@@ -148,12 +148,17 @@ export default async function ControlPage() {
           <ul className="flex flex-col gap-2 text-sm">
             {live.matches.map((match) => (
               <li key={match.matchId} className="flex justify-between gap-4">
-                <span>
+                <span className="min-w-0">
                   <span className="text-radiant">{match.radiantTeamName ?? 'Radiant'}</span>
                   <span className="px-2 text-faint">vs</span>
                   <span className="text-dire">{match.direTeamName ?? 'Dire'}</span>
+                  {match.leagueName && (
+                    <span className="mt-0.5 block truncate text-xs text-faint">
+                      {match.leagueName}
+                    </span>
+                  )}
                 </span>
-                <span className="mono text-xs text-faint">
+                <span className="mono shrink-0 text-xs text-faint">
                   {match.radiantSeriesWins}–{match.direSeriesWins}
                 </span>
               </li>

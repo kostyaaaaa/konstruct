@@ -552,6 +552,24 @@ recorded, and several with a score of `0` — the signature of the swallowed-err
 problem above. An older archive of 234 scored matches exists on a different
 Atlas cluster and is not in use.
 
+### The match registry stores its league's name
+
+`live_matches` carries `leagueName` alongside `leagueId`, copied in by
+discovery from the row `resolve()` already loaded. The name is denormalised on
+purpose: the console lists matches on three screens, and a join per screen per
+ten-second refresh costs more than a string per row.
+
+`resolve()` returns the tracked decision and the name together for the same
+reason — it reads the whole league document either way, so asking separately
+would double the queries on every poll.
+
+A league OpenDota has not named yet is stored with its id as a placeholder.
+That is treated as no name rather than passed through, so the console falls
+back instead of printing the number twice.
+
+`scripts/backfill-league-names.mjs` fills the field on rows written before
+discovery set it, copying from the `leagues` collection. Safe to run twice.
+
 ### A prediction can be flagged as built on thin records
 
 `suspicious` is set when **two or more players on either side have fewer than

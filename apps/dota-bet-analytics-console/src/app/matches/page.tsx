@@ -32,6 +32,9 @@ function MatchRow({ match }: { match: LiveMatch }) {
           {SERIES_LABEL[match.seriesType] && ` · ${SERIES_LABEL[match.seriesType]}`}
           {` · series ${match.radiantSeriesWins}–${match.direSeriesWins}`}
         </div>
+        {match.leagueName && (
+          <div className="mt-0.5 truncate pl-4 text-xs text-faint">{match.leagueName}</div>
+        )}
       </div>
 
       {/* Under the team names on a phone, aligned with them rather than
@@ -66,8 +69,8 @@ export default async function MatchesPage() {
           live.matches.map((match) => <MatchRow key={match.matchId} match={match} />)
         ) : (
           <p className="text-sm text-muted">
-            No tier 1–2 matches are live right now. Only `premium` and `professional` leagues are
-            tracked, so quiet periods are normal.
+            Nothing live right now. Only tournaments with a prize pool above the configured minimum
+            are tracked, so quiet periods are normal.
           </p>
         )}
       </Panel>

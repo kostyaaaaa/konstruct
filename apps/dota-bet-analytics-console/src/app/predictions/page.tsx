@@ -57,7 +57,7 @@ export default async function PredictionsPage({
 
   const [accuracy, list, leagues] = await Promise.all([
     api.accuracy(threshold, leagueId, includeSuspicious),
-    api.predictions(leagueId, includeSuspicious),
+    api.predictions(leagueId, includeSuspicious, threshold),
     api.predictionLeagues(includeSuspicious),
   ]);
 

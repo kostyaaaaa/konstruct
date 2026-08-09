@@ -58,6 +58,7 @@ export interface BackfillStatus {
 export interface LiveMatch {
   matchId: number;
   leagueId: number;
+  leagueName?: string;
   radiantTeamName?: string;
   direTeamName?: string;
   seriesType: number;
@@ -177,14 +178,21 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-/** The two prediction filters, as a query string. Omitted when at default. */
-function filters(leagueId: number | undefined, includeSuspicious: boolean): string {
+/** The prediction filters, as a query string. Omitted when at their default. */
+function filters(
+  leagueId: number | undefined,
+  includeSuspicious: boolean,
+  minMarginPercent = 0,
+): string {
   const params = new URLSearchParams();
   if (leagueId) {
     params.set('league', String(leagueId));
   }
   if (!includeSuspicious) {
     params.set('includeSuspicious', 'false');
+  }
+  if (minMarginPercent > 0) {
+    params.set('minMarginPercent', String(minMarginPercent));
   }
   return params.toString();
 }
@@ -195,9 +203,9 @@ export const api = {
   backfillStatus: () => get<BackfillStatus>('/backfill/status'),
   liveMatches: () => get<{ count: number; matches: LiveMatch[] }>('/matches/live'),
   recentMatches: () => get<{ count: number; matches: LiveMatch[] }>('/matches/recent'),
-  predictions: (leagueId?: number, includeSuspicious = true) =>
+  predictions: (leagueId?: number, includeSuspicious = true, minMarginPercent = 0) =>
     get<{ count: number; predictions: Prediction[] }>(
-      `/predictions?${filters(leagueId, includeSuspicious)}`,
+      `/predictions?${filters(leagueId, includeSuspicious, minMarginPercent)}`,
     ),
   predictionLeagues: (includeSuspicious = true) =>
     get<{ count: number; leagues: PredictionLeague[] }>(

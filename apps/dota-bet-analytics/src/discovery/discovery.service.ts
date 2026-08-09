@@ -133,10 +133,11 @@ export class DiscoveryService {
     /* One lookup per distinct league in the feed, cached after the first
        time — a poll sees the same dozen tournaments over and over. */
     const leagueIds = [...new Set(games.map((game) => game.league_id).filter(Boolean))];
-    const tracked = new Set<number>();
+    const tracked = new Map<number, string | undefined>();
     for (const id of leagueIds) {
-      if (await this.leagues.isTracked(id!)) {
-        tracked.add(id!);
+      const decision = await this.leagues.resolve(id!);
+      if (decision.tracked) {
+        tracked.set(id!, decision.name);
       }
     }
 
@@ -257,7 +258,10 @@ export class DiscoveryService {
   }
 
   /** Keeps a game only if it is a tracked league and carries a usable id. */
-  private toObserved(game: SteamLiveGame, tracked: Set<number>): ObservedMatch | null {
+  private toObserved(
+    game: SteamLiveGame,
+    tracked: Map<number, string | undefined>,
+  ): ObservedMatch | null {
     const matchId = game.match_id;
     const leagueId = game.league_id;
 
@@ -271,6 +275,7 @@ export class DiscoveryService {
     return {
       matchId,
       leagueId,
+      leagueName: tracked.get(leagueId),
       radiantTeamId: game.radiant_team?.team_id,
       radiantTeamName: game.radiant_team?.team_name,
       direTeamId: game.dire_team?.team_id,

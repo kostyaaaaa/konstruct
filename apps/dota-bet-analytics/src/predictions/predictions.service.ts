@@ -260,11 +260,19 @@ export class PredictionsService {
       .exec();
   }
 
-  async findRecent(limit = 50, leagueId?: number, includeSuspicious = true): Promise<Prediction[]> {
+  async findRecent(
+    limit = 50,
+    leagueId?: number,
+    includeSuspicious = true,
+    minMarginPercent = 0,
+  ): Promise<Prediction[]> {
     return this.model
       .find({
         ...(leagueId === undefined ? {} : { leagueId }),
         ...suspiciousFilter(includeSuspicious),
+        /* Omitted at zero rather than sent as `$gte: 0`, so the common case is
+           an unfiltered query the index does not have to think about. */
+        ...(minMarginPercent > 0 ? { marginPercent: { $gte: minMarginPercent } } : {}),
       })
       .sort({ createdAt: -1 })
       .limit(limit)
