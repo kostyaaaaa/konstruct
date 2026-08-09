@@ -81,6 +81,16 @@ export function buildReport(
     });
   }
 
+  /* A separate warning from `complete`, and worth its own line. That one means
+     a fetch failed; this one means it worked and returned almost nothing,
+     which usually says the account is new rather than the player. */
+  if (prediction.suspicious) {
+    blocks.push({
+      type: 'paragraph',
+      text: marked('Thin records — two or more players have under 5 games on their hero.'),
+    });
+  }
+
   const context: RichText[] = [];
   if (prediction.leagueName) {
     context.push(prediction.leagueName);

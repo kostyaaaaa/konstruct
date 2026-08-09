@@ -87,6 +87,7 @@ export interface PredictionPlayer {
 
 export interface Prediction {
   matchId: number;
+  leagueId: number;
   radiantTeamName?: string;
   direTeamName?: string;
   radiantScore: number;
@@ -101,6 +102,8 @@ export interface Prediction {
   radiantPlayers: PredictionPlayer[];
   direPlayers: PredictionPlayer[];
   complete: boolean;
+  /** Two or more players on a side had under 5 games on their picked hero. */
+  suspicious: boolean;
   winner: string | null;
   correct: boolean | null;
   createdAt: string;
@@ -130,8 +133,21 @@ export interface LogsResponse {
   rows: LogRow[];
 }
 
+/** One tournament, with how the model has done in it so far. */
+export interface PredictionLeague {
+  leagueId: number;
+  leagueName?: string;
+  /** Predictions made, settled or not. */
+  count: number;
+  settled: number;
+  correct: number;
+  accuracyPercent: number | null;
+}
+
 export interface Accuracy {
   minMarginPercent: number;
+  leagueId: number | null;
+  includeSuspicious: boolean;
   settled: number;
   correct: number;
   incorrect: number;
@@ -161,13 +177,32 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
+/** The two prediction filters, as a query string. Omitted when at default. */
+function filters(leagueId: number | undefined, includeSuspicious: boolean): string {
+  const params = new URLSearchParams();
+  if (leagueId) {
+    params.set('league', String(leagueId));
+  }
+  if (!includeSuspicious) {
+    params.set('includeSuspicious', 'false');
+  }
+  return params.toString();
+}
+
 export const api = {
   workers: () => get<{ workers: WorkerRow[] }>('/workers'),
   discoveryStatus: () => get<DiscoveryStatus>('/discovery/status'),
   backfillStatus: () => get<BackfillStatus>('/backfill/status'),
   liveMatches: () => get<{ count: number; matches: LiveMatch[] }>('/matches/live'),
   recentMatches: () => get<{ count: number; matches: LiveMatch[] }>('/matches/recent'),
-  predictions: () => get<{ count: number; predictions: Prediction[] }>('/predictions'),
+  predictions: (leagueId?: number, includeSuspicious = true) =>
+    get<{ count: number; predictions: Prediction[] }>(
+      `/predictions?${filters(leagueId, includeSuspicious)}`,
+    ),
+  predictionLeagues: (includeSuspicious = true) =>
+    get<{ count: number; leagues: PredictionLeague[] }>(
+      `/predictions/leagues?${filters(undefined, includeSuspicious)}`,
+    ),
   prediction: (matchId: number) => get<Prediction>(`/predictions/${matchId}`),
   series: (matchId: number) =>
     get<{ matchId: number; count: number; points: SeriesPoint[] }>(`/snapshots/${matchId}/series`),
@@ -175,8 +210,10 @@ export const api = {
     get<LogsResponse>(
       `/logs?level=${level}&hours=24&limit=100${env ? `&env=${encodeURIComponent(env)}` : ''}`,
     ),
-  accuracy: (minMarginPercent: number) =>
-    get<Accuracy>(`/predictions/accuracy?minMarginPercent=${minMarginPercent}`),
+  accuracy: (minMarginPercent: number, leagueId?: number, includeSuspicious = true) =>
+    get<Accuracy>(
+      `/predictions/accuracy?minMarginPercent=${minMarginPercent}&${filters(leagueId, includeSuspicious)}`,
+    ),
 };
 
 /** Writes. Used only from server actions. */

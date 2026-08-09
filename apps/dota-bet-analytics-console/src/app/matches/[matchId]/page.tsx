@@ -50,7 +50,20 @@ export default async function MatchDetailPage({
 
         {prediction ? (
           <>
-            <Panel title="Prediction">
+            <Panel
+              title="Prediction"
+              action={
+                prediction.leagueName ? (
+                  <Link
+                    href={`/predictions?league=${prediction.leagueId}`}
+                    className="text-xs text-muted transition-colors hover:text-ink"
+                    title="See every prediction from this tournament"
+                  >
+                    {prediction.leagueName.trim()}
+                  </Link>
+                ) : undefined
+              }
+            >
               <div className="mb-4 flex flex-wrap gap-6 text-sm max-sm:gap-x-4 max-sm:gap-y-2.5">
                 <div>
                   <Hint
@@ -98,6 +111,13 @@ export default async function MatchDetailPage({
                 )}
                 {!prediction.complete && (
                   <div className="text-warn">incomplete — some player stats were unavailable</div>
+                )}
+                {prediction.suspicious && (
+                  <div className="text-warn">
+                    <Hint text="Two or more players on a side have fewer than five games on the hero they picked. Usually that means a new account rather than a new player, and no public API links accounts back together. The prediction is still real arithmetic — it is just built on very little.">
+                      thin records
+                    </Hint>
+                  </div>
                 )}
               </div>
 

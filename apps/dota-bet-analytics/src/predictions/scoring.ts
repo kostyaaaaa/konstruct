@@ -125,6 +125,48 @@ function shrunkWinRate(player: PlayerHeroStats): number {
   return ((player.winsOnHero + SHRINK * 0.5) / (player.gamesOnHero + SHRINK)) * 100;
 }
 
+/**
+ * Fewer games than this on the picked hero is not a record, it is a rumour.
+ *
+ * Shrinkage already stops one win from one game reading as 100% — it enters
+ * the score as 54.5%. What shrinkage cannot fix is that the number is not
+ * about the player at all: professionals routinely appear on accounts created
+ * months ago, so a one-game history is often a fragment of a career that lives
+ * somewhere else. There is no public way to link those accounts. OpenDota
+ * exposes no such endpoint and neither does Steam.
+ */
+const THIN_RECORD_GAMES = 5;
+
+/** How many thin records on one side make the whole match untrustworthy. */
+const THIN_RECORDS_PER_SIDE = 2;
+
+function thinRecords(players: readonly { gamesOnHero: number }[]): number {
+  return players.filter((player) => player.gamesOnHero < THIN_RECORD_GAMES).length;
+}
+
+/**
+ * Whether a match is built on records too thin to trust.
+ *
+ * **The prediction is still made.** This flags it rather than dropping it: the
+ * scores are real arithmetic on the data we have, and throwing the row away
+ * would also throw away the evidence of how such matches turn out.
+ *
+ * One thin record is normal — a pocket pick, a hero somebody just learned.
+ * Two on the same side means half that draft is unreadable, and the side's
+ * mean win rate is then mostly the shrinkage constant rather than anything
+ * observed. Either side being unreadable makes the *comparison* meaningless,
+ * which is why this is `||` and not `&&`.
+ */
+export function isSuspicious(
+  radiantPlayers: readonly { gamesOnHero: number }[],
+  direPlayers: readonly { gamesOnHero: number }[],
+): boolean {
+  return (
+    thinRecords(radiantPlayers) >= THIN_RECORDS_PER_SIDE ||
+    thinRecords(direPlayers) >= THIN_RECORDS_PER_SIDE
+  );
+}
+
 export function scoreSide(players: readonly PlayerHeroStats[], heroMatchup = 50): SideScore {
   if (players.length === 0) {
     return { heroWinRate: 50, heroGames: 0, heroMatchup };

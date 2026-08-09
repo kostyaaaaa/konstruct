@@ -40,12 +40,23 @@ thing you look at.
 - `GET /predictions` — the 50 most recent, full payload.
 - `GET /predictions/:matchId` — one prediction, enough to rebuild the whole
   report as a page.
+- `GET /predictions/leagues` — every tournament that has a prediction, with
+  its settled record. Keyed by league id, not name: names arrive with stray
+  whitespace and get edited mid-tournament.
 - `GET /predictions/accuracy?minMarginPercent=N` — accuracy over settled
   predictions. The threshold is a parameter, not a constant.
 - `GET /backfill/status` — when the winner backfill last ran and what it found.
 - `POST /backfill/run` — run a batch now instead of waiting for the tick.
 - `GET /logs?level=&service=&hours=&limit=` — recent events read back from
   Axiom. Reports itself unavailable when no query token is configured.
+
+`GET /predictions`, `GET /predictions/leagues` and `GET /predictions/accuracy`
+all take an optional `league=<id>`, which narrows them to one tournament, and
+`includeSuspicious=false`, which leaves out matches built on thin hero records.
+Both default to showing everything: the API describes what is stored, and the
+console decides what is worth looking at. Pooled accuracy hides the
+difference between an event the model reads well and one it does not, and only
+some tracked events are ones a bookmaker will take a bet on.
 
 ## Owns
 
@@ -540,3 +551,35 @@ The `matches` collection holds 18 rows from September 2025, none with a winner
 recorded, and several with a score of `0` — the signature of the swallowed-error
 problem above. An older archive of 234 scored matches exists on a different
 Atlas cluster and is not in use.
+
+### A prediction can be flagged as built on thin records
+
+`suspicious` is set when **two or more players on either side have fewer than
+five games on the hero they picked**. The prediction is still made and still
+stored — this only lets it be left out of what is counted.
+
+It is not a weaker `complete`. `complete` means a fetch failed and there is no
+data. This means the fetch worked and returned almost nothing, which usually
+says the account is new rather than the player: professionals appear on fresh
+accounts constantly, and **no public API links those accounts back together** —
+OpenDota has no such endpoint across its 55, and neither does Steam.
+
+Shrinkage already stops one win from one game reading as 100%; it enters the
+score as 54.5%. What shrinkage cannot fix is that the number is about an
+account rather than a person.
+
+Two on one side is the line because one is ordinary — a pocket pick, a hero
+somebody just learned. Two means half a draft is unreadable, and that side's
+mean win rate is then mostly the shrinkage constant. It is `either side`, not
+both: the score is a comparison, so one unreadable side spoils it.
+
+**On the first 72 predictions the flag pointed the wrong way.** Flagged matches
+were called right 5 times out of 6; everything else, 19 of 43. Six is far too
+small to mean anything, and the plausible reading is that a side fielding two
+unknown accounts is genuinely weaker — the model predicts against them and is
+right. Worth re-checking once the sample is real, because if it holds, the flag
+is better used as a signal than as an exclusion.
+
+`scripts/backfill-suspicious.mjs` recomputes the field for rows written before
+it existed. It imports the rule from the build rather than copying it, and it
+is safe to run twice.

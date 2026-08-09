@@ -10,10 +10,21 @@ import { AppLogger } from '../logger/logger.service.js';
 import { OpenDotaService } from '../opendota/opendota.service.js';
 import { ProPlayersService } from '../pro-players/pro-players.service.js';
 import { Prediction, type PredictionPlayer } from './prediction.schema.js';
-import { MODEL_VERSION, pick, scoreSide, type PlayerHeroStats } from './scoring.js';
+import { MODEL_VERSION, isSuspicious, pick, scoreSide, type PlayerHeroStats } from './scoring.js';
 
 /** OpenDota's free tier allows 60 requests a minute; ten players cost twenty. */
 const OPENDOTA_CONCURRENCY = 3;
+
+/** One tournament, with how the model has done in it so far. */
+export interface PredictionLeague {
+  leagueId: number;
+  leagueName?: string;
+  /** Predictions made, settled or not. */
+  count: number;
+  settled: number;
+  correct: number;
+  accuracyPercent: number | null;
+}
 
 export interface PredictionContext {
   matchId: number;
@@ -82,6 +93,15 @@ export class PredictionsService {
       });
     }
 
+    const suspicious = isSuspicious(radiantPlayers, direPlayers);
+    if (suspicious) {
+      this.logger.warn('prediction built on thin hero records', {
+        context: 'Predictions',
+        matchId: context.matchId,
+        league: context.leagueName,
+      });
+    }
+
     const prediction = await this.model
       .findOneAndUpdate(
         { matchId: context.matchId },
@@ -102,6 +122,7 @@ export class PredictionsService {
             radiantPlayers,
             direPlayers,
             complete,
+            suspicious,
           },
         },
         { upsert: true, returnDocument: 'after' },
@@ -119,6 +140,7 @@ export class PredictionsService {
       favoured: outcome.favoured,
       marginPercent: outcome.marginPercent,
       complete,
+      suspicious,
     });
 
     return prediction;
@@ -238,16 +260,90 @@ export class PredictionsService {
       .exec();
   }
 
-  async findRecent(limit = 50): Promise<Prediction[]> {
-    return this.model.find().sort({ createdAt: -1 }).limit(limit).lean<Prediction[]>().exec();
+  async findRecent(limit = 50, leagueId?: number, includeSuspicious = true): Promise<Prediction[]> {
+    return this.model
+      .find({
+        ...(leagueId === undefined ? {} : { leagueId }),
+        ...suspiciousFilter(includeSuspicious),
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean<Prediction[]>()
+      .exec();
   }
 
   async findByMatchId(matchId: number): Promise<Prediction | null> {
     return this.model.findOne({ matchId }).lean<Prediction>().exec();
   }
 
+  /**
+   * Every tournament that has a prediction, with its settled record.
+   *
+   * Accuracy is here rather than only on `accuracy()` because the question
+   * this answers is which tournaments are worth predicting at all. A league
+   * the model reads badly is invisible in a pooled number — it just drags the
+   * average down — and one bad league can hide a good one.
+   *
+   * `leagueId` is the key, not the name. Names arrive from OpenDota with
+   * stray whitespace and get edited mid-tournament; the id does not move.
+   */
+  async leagues(includeSuspicious = true): Promise<PredictionLeague[]> {
+    const rows = await this.model
+      .aggregate<{
+        _id: number;
+        leagueName?: string;
+        count: number;
+        settled: number;
+        correct: number;
+        lastAt: Date;
+      }>([
+        { $match: suspiciousFilter(includeSuspicious) },
+        /* `settled` and `correct` must be counted over the *same* rows, or a
+           league can report more correct calls than settled ones — which is
+           exactly what happened when `correct` counted every model version
+           while `settled` counted only the current one. */
+        {
+          $set: {
+            isSettled: {
+              $and: [
+                { $ne: ['$winner', null] },
+                { $eq: ['$complete', true] },
+                { $eq: ['$modelVersion', MODEL_VERSION] },
+              ],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$leagueId',
+            leagueName: { $last: '$leagueName' },
+            count: { $sum: 1 },
+            settled: { $sum: { $cond: ['$isSettled', 1, 0] } },
+            correct: {
+              $sum: {
+                $cond: [{ $and: ['$isSettled', { $eq: ['$correct', true] }] }, 1, 0],
+              },
+            },
+            lastAt: { $max: '$createdAt' },
+          },
+        },
+        { $sort: { lastAt: -1 } },
+      ])
+      .exec();
+
+    return rows.map((row) => ({
+      leagueId: row._id,
+      leagueName: row.leagueName?.trim() || undefined,
+      count: row.count,
+      settled: row.settled,
+      correct: row.correct,
+      accuracyPercent:
+        row.settled > 0 ? Number(((row.correct / row.settled) * 100).toFixed(1)) : null,
+    }));
+  }
+
   /** Accuracy over predictions whose winner is known. */
-  async accuracy(minMarginPercent = 0) {
+  async accuracy(minMarginPercent = 0, leagueId?: number, includeSuspicious = true) {
     const settled = await this.model
       /* One model at a time: `marginPercent` is not comparable across
          versions, so mixing them would average two different scales. */
@@ -256,6 +352,8 @@ export class PredictionsService {
         complete: true,
         modelVersion: MODEL_VERSION,
         marginPercent: { $gte: minMarginPercent },
+        ...(leagueId === undefined ? {} : { leagueId }),
+        ...suspiciousFilter(includeSuspicious),
       })
       .select('correct -_id')
       .lean<{ correct: boolean | null }[]>()
@@ -265,6 +363,8 @@ export class PredictionsService {
 
     return {
       minMarginPercent,
+      leagueId: leagueId ?? null,
+      includeSuspicious,
       settled: settled.length,
       correct,
       incorrect: settled.length - correct,
@@ -272,6 +372,16 @@ export class PredictionsService {
         settled.length > 0 ? Number(((correct / settled.length) * 100).toFixed(1)) : null,
     };
   }
+}
+
+/**
+ * The "leave out the untrustworthy ones" clause, in one place.
+ *
+ * `$ne: true` rather than `false` on purpose: it also matches rows written
+ * before the field existed, so a query cannot silently drop them.
+ */
+function suspiciousFilter(includeSuspicious: boolean) {
+  return includeSuspicious ? {} : { suspicious: { $ne: true } };
 }
 
 function toStats(player: PredictionPlayer): PlayerHeroStats {

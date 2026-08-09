@@ -143,6 +143,22 @@ export class Prediction {
   @Prop({ default: true })
   complete!: boolean;
 
+  /**
+   * True when two or more players on either side had fewer than five games on
+   * the hero they picked.
+   *
+   * Separate from `complete`, and not a worse version of it. `complete` means
+   * a fetch failed — we have no data. This means the fetch worked and the data
+   * it returned is too thin to say anything, which usually means the account
+   * is new and the player's real history is on another one.
+   *
+   * The prediction is made either way. This exists so accuracy can be measured
+   * with those matches left out, which is the only way to find out whether
+   * they are actually worse.
+   */
+  @Prop({ default: false, index: true })
+  suspicious!: boolean;
+
   /** Filled in after the match, from OpenDota. Empty until then. */
   @Prop({ type: String, default: null, index: true })
   winner!: string | null;

@@ -252,3 +252,38 @@ wants the per-poll detail still works; it just has no shortcut in the UI.
 It calls the API's `/logs`, and the API queries Axiom with `AXIOM_QUERY_TOKEN`.
 That token is separate from the ingest token and never leaves the API server.
 Until it is set, the page shows why it is empty instead of erroring.
+
+### Predictions are filtered by confidence and by tournament
+
+Two filters, and they combine — switching tournament keeps the margin, and the
+other way round. Both live in the Accuracy panel and both narrow the list
+below it as well as the figures above it, so what is counted and what is shown
+never disagree.
+
+**Tournament is a filter because pooled accuracy is misleading here.** Leagues
+are tracked on prize money, which admits small events alongside serious ones.
+Averaging them produces a number that describes neither, and one weak
+tournament can bury a strong one. Each tournament pill carries its own settled
+record for the same reason.
+
+The pill is a league id in the URL, not a name. Names arrive from OpenDota with
+stray whitespace and are edited mid-tournament; the id does not move. Names are
+trimmed on display only.
+
+A match page links its tournament back to that filtered list, so "how has the
+model done at this event" is one click from any match.
+
+### Thin-record matches are hidden by default
+
+A third filter, next to margin and tournament: matches where two or more
+players on a side had under five games on their picked hero. It starts **on**,
+so the default view is the trustworthy one.
+
+Like the others it is a link, not an `input` — every filter on this page is a
+URL, which keeps the screen a server component and makes any view shareable.
+Only the non-default state reaches the URL, so a bare `/predictions` is the
+filtered view rather than the raw one.
+
+A hidden match is not deleted or unreachable. It still has its own page, still
+shows in the tournament counts when the box is unticked, and is marked `thin
+records` in the list so the reason is visible rather than implied.
