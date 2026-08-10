@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { BackfillModule } from './backfill/backfill.module.js';
 import { CommonModule } from './common/common.module.js';
+import { RequestLoggerMiddleware } from './common/request-logger.middleware.js';
 import { validateEnv } from './config/env.schema.js';
 import { DatabaseModule } from './database/database.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
@@ -50,4 +51,10 @@ import { WorkersModule } from './workers/workers.module.js';
     DiscoveryModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /* Applied to every route, so a request to a path that matches no controller
+     is logged as the 404 it is rather than vanishing. */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}

@@ -1,10 +1,24 @@
+/**
+ * Strips a query-string API key from a URL.
+ *
+ * **This lives here, not at the logging call site, because the URL escapes
+ * through error messages as well as through fields.** Steam puts its key in
+ * the query string, so every string built from a URL — a thrown message, a
+ * `reason` handed to an observer — carries the key unless it is removed at the
+ * point the string is made. Redacting only the `url` field leaks it through
+ * `reason`, which is what happened.
+ */
+export function redactUrl(url: string): string {
+  return url.replace(/([?&](?:key|api_key|token)=)[^&]+/gi, '$1REDACTED');
+}
+
 /** Thrown for a response we should not retry — the request itself was wrong. */
 export class HttpClientError extends Error {
   constructor(
     readonly status: number,
     readonly url: string,
   ) {
-    super(`HTTP ${status} from ${url}`);
+    super(`HTTP ${status} from ${redactUrl(url)}`);
     this.name = 'HttpClientError';
   }
 }
@@ -74,7 +88,7 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
       });
 
       if (response.status === 429 || response.status >= 500) {
-        lastError = new Error(`HTTP ${response.status} from ${url}`);
+        lastError = new Error(`HTTP ${response.status} from ${redactUrl(url)}`);
         continue;
       }
 
@@ -94,5 +108,7 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
   const reason = lastError instanceof Error ? lastError.message : String(lastError);
   observer?.onGiveUp?.({ url, attempts: retries + 1, reason });
 
-  throw new Error(`Request failed after ${retries + 1} attempts: ${url}`, { cause: lastError });
+  throw new Error(`Request failed after ${retries + 1} attempts: ${redactUrl(url)}`, {
+    cause: lastError,
+  });
 }

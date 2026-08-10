@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { AppLogger } from '../logger/logger.service.js';
-import type { FetchObserver } from './http.js';
+import { redactUrl, type FetchObserver } from './http.js';
 
 /**
  * Turns `fetchJson` retries into log lines.
@@ -21,7 +21,7 @@ export class HttpObserver {
         this.logger.warn('external request retrying', {
           context: 'Http',
           api,
-          url: redact(url),
+          url: redactUrl(url),
           attempt,
           waitMs,
           reason,
@@ -31,16 +31,11 @@ export class HttpObserver {
         this.logger.error('external request failed', undefined, {
           context: 'Http',
           api,
-          url: redact(url),
+          url: redactUrl(url),
           attempts,
           reason,
         });
       },
     };
   }
-}
-
-/** Steam puts the API key in the query string; it must not reach the logs. */
-function redact(url: string): string {
-  return url.replace(/([?&]key=)[^&]+/gi, '$1REDACTED');
 }

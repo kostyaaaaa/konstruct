@@ -215,6 +215,23 @@ final result.
 **Redact secrets that live in URLs.** Steam puts the API key in the query
 string, so anything logging a URL strips it first.
 
+### A silent process is indistinguishable from a dead one
+
+**Every long-running worker logs a heartbeat, once a minute, whether or not it
+did anything.** One `info` line with what it has done since the last one —
+ticks completed, failures, whatever it is watching.
+
+This breaks the "one `info` per completed step" rule above on purpose. Without
+it, a healthy idle process and a wedged one both log nothing, and the only way
+to ask "was it running an hour ago" is to reconstruct the answer from database
+side effects. That is not an answer you can get during an incident.
+
+**An HTTP app also logs one line per request**, on `finish` so the status and
+duration are real. A request that never completes never logs, which is the
+signal. Health checks belong at `debug` — they are constant and would bury
+everything else — and the query string is never logged, because that is where
+an API key sits.
+
 - **Levels mean something.** `error` is something a person must look at.
   `warn` is unexpected but handled. `info` is a normal milestone. `debug` is off
   in production.

@@ -5,14 +5,14 @@ export default [
   { ignores: ['dist/**'] },
   {
     /**
-     * `research/` is a set of command-line scripts whose entire output is what
-     * they print. `no-console` is the right rule for a server and the wrong
+     * `research/` and `scripts/` are command-line scripts whose entire output
+     * is what they print. `no-console` is the right rule for a server and the wrong
      * one here — a script that cannot print has no way to report anything.
      *
      * Scoped to the folder rather than disabled inline, so the rule keeps
      * applying everywhere it should.
      */
-    files: ['research/**/*.mjs'],
+    files: ['research/**/*.mjs', 'scripts/**/*.mjs'],
     rules: { 'no-console': 'off' },
   },
 ];

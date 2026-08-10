@@ -65,6 +65,19 @@ export class LiveMatch {
   @Prop({ required: true, index: true })
   lastSeenAt!: Date;
 
+  /**
+   * Successful polls in a row that did not contain this match.
+   *
+   * A match is ended on a run of misses, never on one. Steam serves a partial
+   * feed while it recovers from an outage — on 2026-08-09 three live matches
+   * were ended by a single such poll and re-discovered seventy seconds later.
+   *
+   * Counted in the document rather than in memory so a restart cannot reset a
+   * run half way through and leave a finished match live forever.
+   */
+  @Prop({ default: 0 })
+  missedPolls!: number;
+
   /** First poll that did not see it after it was live. */
   @Prop()
   endedAt?: Date;

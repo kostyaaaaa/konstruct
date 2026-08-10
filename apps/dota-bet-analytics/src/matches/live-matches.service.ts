@@ -20,6 +20,15 @@ export interface ObservedMatch {
   spectators?: number;
 }
 
+/**
+ * Successful polls a match must be absent from before it is called finished.
+ *
+ * Three polls is about thirty seconds. A real match that has ended stays
+ * absent, so the cost of waiting is a slightly late `match ended`; the cost of
+ * not waiting is live matches flipping to ended and back on one bad payload.
+ */
+const END_AFTER_MISSED_POLLS = 3;
+
 @Injectable()
 export class LiveMatchesService {
   constructor(@InjectModel(LiveMatch.name) private readonly model: Model<LiveMatch>) {}
@@ -50,7 +59,7 @@ export class LiveMatchesService {
         updateOne: {
           filter: { matchId: match.matchId },
           update: {
-            $set: { ...match, status: 'live' as const, lastSeenAt: seenAt },
+            $set: { ...match, status: 'live' as const, lastSeenAt: seenAt, missedPolls: 0 },
             $setOnInsert: { startedAt: seenAt },
             /* A match seen again has no end time — clear it rather than
                leaving a stale one from a previous disappearance. */
@@ -72,8 +81,19 @@ export class LiveMatchesService {
    * are absent from the first poll after it comes back, so they end then.
    */
   async endMatchesMissingFrom(seenIds: number[], endedAt: Date): Promise<number[]> {
+    /* Count the miss first, then end only what has missed enough of them.
+       Callers must not invoke this after a failed poll — an empty feed we
+       never received is not evidence that anything finished. */
+    await this.model
+      .updateMany({ status: 'live', matchId: { $nin: seenIds } }, { $inc: { missedPolls: 1 } })
+      .exec();
+
     const stale = await this.model
-      .find({ status: 'live', matchId: { $nin: seenIds } })
+      .find({
+        status: 'live',
+        matchId: { $nin: seenIds },
+        missedPolls: { $gte: END_AFTER_MISSED_POLLS },
+      })
       .select('matchId')
       .lean<{ matchId: number }[]>()
       .exec();

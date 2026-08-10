@@ -601,3 +601,36 @@ is better used as a signal than as an exclusion.
 `scripts/backfill-suspicious.mjs` recomputes the field for rows written before
 it existed. It imports the rule from the build rather than copying it, and it
 is safe to run twice.
+
+### A match ends after three missed polls, not one
+
+Discovery ends a live match only when it has been absent from **three
+consecutive successful polls**, about thirty seconds. The count lives on the
+match document, so a restart cannot reset a run half way through and leave a
+finished match live forever.
+
+One poll is not enough. Steam serves a partial feed while recovering from an
+outage: on 2026-08-09 a single such payload ended three live matches, which
+were re-discovered seventy seconds later. Nothing was corrupted — `startedAt`
+survives on `$setOnInsert` and a duplicate prediction is blocked — but the
+registry flapped and the console briefly showed live games as finished.
+
+The cost of waiting is a `match ended` that arrives half a minute late. A
+match that has really finished stays absent.
+
+### Two logs exist to make silence meaningful
+
+Production runs at `LOG_LEVEL=info`, and a healthy idle process used to log
+nothing at all. That made "was it running at 13:10?" unanswerable — the only
+evidence was whether snapshots had been written, and their absence has an
+innocent explanation too. A manual restart then looks like it fixed something.
+
+- **`discovery heartbeat`** — one `info` a minute carrying polls, failures,
+  skips, live match count and seconds since the last successful poll. It runs
+  outside the poll and outside the pause check, because a paused or wedged
+  worker is exactly the state worth seeing. **A gap in this line is a gap in
+  the process.**
+- **`request`** — one line per HTTP request, logged on `finish`. `/health` goes
+  to `debug` so Railway's probing does not bury the rest; raise `LOG_LEVEL` to
+  see it. The query string is dropped, since that is where the Steam key would
+  be.

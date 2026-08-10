@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 
 import { HttpObserver } from './http-observer.js';
+import { RequestLoggerMiddleware } from './request-logger.middleware.js';
 
 /**
  * Global because every service that calls an external API needs the observer,
@@ -9,7 +10,7 @@ import { HttpObserver } from './http-observer.js';
  */
 @Global()
 @Module({
-  providers: [HttpObserver],
+  providers: [HttpObserver, RequestLoggerMiddleware],
   exports: [HttpObserver],
 })
 export class CommonModule {}

@@ -36,6 +36,10 @@ export class DiscoveryService {
   private lastSnapshotsWritten = 0;
   /** Guards against a slow poll overlapping the next tick. */
   private polling = false;
+  /* Counted between heartbeats, then reset. */
+  private pollsSinceHeartbeat = 0;
+  private failuresSinceHeartbeat = 0;
+  private skippedSinceHeartbeat = 0;
 
   constructor(
     private readonly config: ConfigService<Env, true>,
@@ -78,6 +82,7 @@ export class DiscoveryService {
     if (this.polling) {
       // A poll that outran its interval. Skipping is correct — the next tick
       // is 10s away and the feed is not going anywhere.
+      this.skippedSinceHeartbeat += 1;
       this.logger.warn('discovery poll skipped, previous still running', {
         context: 'Discovery',
       });
@@ -91,9 +96,11 @@ export class DiscoveryService {
 
     try {
       toReport = await this.runPoll();
+      this.pollsSinceHeartbeat += 1;
       this.lastSuccessAt = new Date();
       this.lastError = null;
     } catch (error) {
+      this.failuresSinceHeartbeat += 1;
       this.lastError = error instanceof Error ? error.message : String(error);
       this.logger.error('discovery poll failed', error instanceof Error ? error : undefined, {
         context: 'Discovery',
@@ -117,6 +124,43 @@ export class DiscoveryService {
     for (const prediction of toReport) {
       await this.report.send(prediction);
     }
+  }
+
+  /**
+   * One `info` line a minute, whether or not anything happened.
+   *
+   * **This exists so that silence means something.** Production runs at `info`
+   * and a healthy idle process logged nothing at all — which made "was it
+   * running at 13:10?" unanswerable, and left a manual restart looking like it
+   * had fixed something. A gap in this line is now a gap in the process.
+   *
+   * It is deliberately outside `poll` and outside the pause check: a paused or
+   * wedged worker is exactly the state worth being able to see.
+   */
+  @Interval('discovery-heartbeat', 60_000)
+  heartbeat(): void {
+    const polls = this.pollsSinceHeartbeat;
+    const failures = this.failuresSinceHeartbeat;
+    const skipped = this.skippedSinceHeartbeat;
+    this.pollsSinceHeartbeat = 0;
+    this.failuresSinceHeartbeat = 0;
+    this.skippedSinceHeartbeat = 0;
+
+    this.logger.log('discovery heartbeat', {
+      context: 'Discovery',
+      polls,
+      failures,
+      skipped,
+      running: this.polling,
+      liveMatches: this.liveMatchCount,
+      gamesInFeed: this.lastPollSawGames,
+      snapshots: this.lastSnapshotsWritten,
+      /* Seconds since the last *successful* poll. Grows without bound if the
+         feed is unreachable, which is the signal that matters. */
+      sinceSuccessSeconds: this.lastSuccessAt
+        ? Math.round((Date.now() - this.lastSuccessAt.getTime()) / 1000)
+        : null,
+    });
   }
 
   /** Returns the predictions made this poll, for the caller to email. */
