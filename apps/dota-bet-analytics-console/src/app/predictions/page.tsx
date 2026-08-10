@@ -62,13 +62,16 @@ export default async function PredictionsPage({
   ]);
 
   const selected = leagues?.leagues.find((row) => row.leagueId === leagueId);
+  /* A margin that is not one of the presets. The box shows it so a custom
+     search does not look like it was ignored, and no pill lights up. */
+  const isCustom = threshold > 0 && !THRESHOLDS.includes(threshold);
 
   return (
     <div className="space-y-6">
       <Panel
         title="Accuracy"
         action={
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {THRESHOLDS.map((value) => (
               <Link
                 key={value}
@@ -78,6 +81,38 @@ export default async function PredictionsPage({
                 ≥{value}%
               </Link>
             ))}
+
+            {/* A plain GET form, so the page stays a server component and the
+                result is still a shareable URL. The other filters ride along
+                as hidden fields rather than being reset by a search. */}
+            <form method="get" action="/predictions" className="flex items-center gap-1">
+              {leagueId ? <input type="hidden" name="league" value={leagueId} /> : null}
+              {includeSuspicious ? <input type="hidden" name="suspicious" value="1" /> : null}
+              <label className="sr-only" htmlFor="margin">
+                Minimum margin, in percent
+              </label>
+              <input
+                id="margin"
+                name="margin"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                defaultValue={isCustom ? threshold : ''}
+                placeholder="any"
+                className={`w-16 rounded-md border px-2 py-1 text-xs mono transition-colors ${
+                  isCustom
+                    ? 'border-accent bg-field text-ink'
+                    : 'border-line bg-transparent text-muted hover:border-line-strong'
+                }`}
+              />
+              <button
+                type="submit"
+                className="rounded-md px-2 py-1 text-xs text-faint transition-colors hover:bg-surface hover:text-muted"
+              >
+                Go
+              </button>
+            </form>
           </div>
         }
       >
@@ -177,7 +212,10 @@ export default async function PredictionsPage({
             <p className="mt-4 text-xs text-faint">
               Counts only predictions whose match has finished and whose player stats were complete.
               The margin filter is the confidence threshold — raising it keeps only the predictions
-              where the two scores were furthest apart.
+              where the two scores were furthest apart. Type any value to search between the
+              presets; a higher threshold buys accuracy with sample size, and the useful setting is
+              the one where accuracy is still climbing but{' '}
+              <span className="text-muted">Settled</span> has not collapsed.
             </p>
           </>
         ) : (

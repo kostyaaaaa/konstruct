@@ -1,4 +1,12 @@
-import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  DefaultValuePipe,
+  Get,
+  Param,
+  ParseFloatPipe,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 
 import { PredictionsService } from './predictions.service.js';
 
@@ -8,6 +16,13 @@ import { PredictionsService } from './predictions.service.js';
  * silently ignoring it, so a typo in a link fails loudly.
  */
 const optionalLeague = new ParseIntPipe({ optional: true });
+
+/**
+ * Margins are decimals — a prediction sits at 2.95% or 9.8% — so the threshold
+ * has to be one too. Parsed as a float, not an int, or a search for 4.5 is a
+ * 400 rather than an answer.
+ */
+const marginPipes = [new DefaultValuePipe(0), ParseFloatPipe] as const;
 
 /**
  * `includeSuspicious` defaults to **true** here, and the console asks for
@@ -28,7 +43,7 @@ export class PredictionsController {
 
   @Get()
   async recent(
-    @Query('minMarginPercent', new DefaultValuePipe(0), ParseIntPipe) minMarginPercent: number,
+    @Query('minMarginPercent', ...marginPipes) minMarginPercent: number,
     @Query('league', optionalLeague) league?: number,
     @Query('includeSuspicious') includeSuspicious?: string,
   ) {
@@ -64,7 +79,7 @@ export class PredictionsController {
    */
   @Get('accuracy')
   async accuracy(
-    @Query('minMarginPercent', new DefaultValuePipe(0), ParseIntPipe) minMarginPercent: number,
+    @Query('minMarginPercent', ...marginPipes) minMarginPercent: number,
     @Query('league', optionalLeague) league?: number,
     @Query('includeSuspicious') includeSuspicious?: string,
   ) {
