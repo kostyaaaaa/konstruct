@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
-const THRESHOLDS = [0, 5, 8, 10, 12, 15];
+const THRESHOLDS = [0, 4, 8, 12, 16];
 
 /**
  * Builds a link that changes one filter and keeps the other.
