@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { BackToKonstruct } from '@/components/BackToKonstruct';
@@ -34,12 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Separates leaving from being here. */}
             <div className="h-[22px] w-px bg-line" />
 
-            <div className="flex items-center gap-2.5">
+            {/* The mark is the way back to Control, which is where the worker
+                state lives. `BackToKonstruct` next to it leaves the app
+                entirely, so these two must not look alike on hover. */}
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+            >
               <Icon name="console" size={26} className="text-accent" />
               <span className="text-[15px] font-semibold tracking-[-0.01em]">
                 Dota bet analytics
               </span>
-            </div>
+            </Link>
           </div>
 
           <Nav items={NAV} />
