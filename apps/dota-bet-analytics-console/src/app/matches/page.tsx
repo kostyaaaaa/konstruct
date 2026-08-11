@@ -7,30 +7,26 @@ export const dynamic = 'force-dynamic';
 
 const SERIES_LABEL: Record<number, string> = { 0: '', 1: 'Bo3', 2: 'Bo5' };
 
-/** `95` -> `2m`, rounded up so a countdown never reads `0m` while still waiting. */
-function countdown(seconds: number): string {
-  return seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)}m`;
-}
-
 /**
- * How close a live match is to being scored.
+ * Whether a live match has been scored yet.
  *
- * Three states, and only the first is a real countdown. Valve serves the
- * scoreboard `stream_delay_s` after the match appears — accurate to about one
- * poll — so that wait can be counted down honestly. What follows is the draft,
- * whose length is up to the teams, so it is named rather than estimated.
+ * Two states, and no countdown. The wait for the delayed scoreboard can be
+ * timed to within a poll, but the draft after it cannot — one in ten runs past
+ * fifteen minutes — so any figure covering both would look exact and be wrong.
  */
-function progress(match: LiveMatch): { label: string; tone: string } | null {
+function progress(match: LiveMatch): { label: string; title: string; tone: string } | null {
   if (match.status !== 'live') {
     return null;
   }
-  if (match.hasPrediction) {
-    return { label: 'predicted', tone: 'text-ok' };
-  }
-  if (match.scoreboardInSeconds) {
-    return { label: `scoreboard in ${countdown(match.scoreboardInSeconds)}`, tone: 'text-faint' };
-  }
-  return { label: 'awaiting draft', tone: 'text-warn' };
+
+  return match.hasPrediction
+    ? { label: 'predicted', title: 'Scored. Open the match to see it.', tone: 'text-ok' }
+    : {
+        label: 'awaiting prediction',
+        title:
+          'Not scored yet. Either the delayed scoreboard has not arrived, or the teams are still drafting — a prediction is made within seconds of the fifth pick.',
+        tone: 'text-faint',
+      };
 }
 
 function MatchRow({ match }: { match: LiveMatch }) {
@@ -68,7 +64,11 @@ function MatchRow({ match }: { match: LiveMatch }) {
       {/* Under the team names on a phone, aligned with them rather than
           against the right edge where it reads as a separate column. */}
       <div className="text-right text-xs text-faint max-sm:ml-[22px] max-sm:text-left">
-        {state && <div className={state.tone}>{state.label}</div>}
+        {state && (
+          <div className={state.tone} title={state.title}>
+            {state.label}
+          </div>
+        )}
         {match.streamDelaySeconds !== undefined && (
           <div>delay {Math.round(match.streamDelaySeconds / 60)}m</div>
         )}

@@ -602,22 +602,20 @@ is better used as a signal than as an exclusion.
 it existed. It imports the rule from the build rather than copying it, and it
 is safe to run twice.
 
-### `GET /matches/live` says how far each match is from a prediction
+### `GET /matches/live` says which matches are already scored
 
-Two extra fields on live rows: `hasPrediction`, and `scoreboardInSeconds`.
+One extra field on live rows: `hasPrediction`.
 
-**Only the second is a real countdown, and only because it was measured.**
-Valve serves the scoreboard on the broadcast's delayed timeline, so it appears
-`stream_delay_s` after the match id enters the feed. Checked across 261
-matches, that is accurate to about ten seconds — one poll — with 253 of them
-inside a minute.
+**How long until the rest are scored is deliberately absent.** It was there
+briefly, and the trouble is that the two halves of that wait are not alike. The
+delayed scoreboard arrives `stream_delay_s` after a match enters the feed —
+measured across 261 matches, accurate to about one poll. The draft that follows
+is not predictable: the middle half of 262 predictions landed 8 to 13 minutes
+after the scoreboard, and one in ten ran past fifteen.
 
-What follows is the draft, and how long five picks take is up to the teams. It
-is named rather than estimated: a match past its scoreboard time with no
-prediction is _awaiting draft_, not _late_.
-
-Computed per request rather than stored, so the number is right whenever it is
-read.
+Adding a measured number to an unmeasurable one produces a figure that looks
+exact and is not. A tilde does not fix that, so the estimate is gone rather
+than dressed up.
 
 ### A match ends after three missed polls, not one
 

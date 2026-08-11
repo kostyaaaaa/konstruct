@@ -288,21 +288,15 @@ A hidden match is not deleted or unreachable. It still has its own page, still
 shows in the tournament counts when the box is unticked, and is marked `thin
 records` in the list so the reason is visible rather than implied.
 
-### A live match says when it can be scored
+### A live match says whether it is scored, not when it will be
 
-Three states on the matches screen, and only one is a countdown:
+Two states: `predicted`, and `awaiting prediction`.
 
-| state              | meaning                                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `scoreboard in 8m` | Nothing is visible yet. The wait is the broadcast delay, and it is accurate to about one poll.                    |
-| `awaiting draft`   | The scoreboard has arrived but no heroes are picked. Not predictable — five picks take as long as the teams take. |
-| `predicted`        | Scored. The match page has it.                                                                                    |
-
-The middle state is deliberately not a number. Estimating it would put a
-figure on the screen that nothing supports, and a countdown that keeps
-resetting is worse than a word that is true.
-
-The page refreshes every ten seconds, so the countdown moves on its own.
+There is no countdown, and that is a decision rather than an omission. The wait
+for the delayed scoreboard can be timed to within a poll; the draft after it
+cannot, and one pick-and-ban in ten runs past fifteen minutes. A single figure
+covering both would read as precise and be wrong often enough to stop being
+worth reading.
 
 ### The draft is shown on its own, not just folded into the score
 

@@ -71,8 +71,6 @@ export interface LiveMatch {
   lastSeenAt: string;
   /** Live matches only: whether this has been scored yet. */
   hasPrediction?: boolean;
-  /** Live matches only: seconds until the delayed scoreboard is due. */
-  scoreboardInSeconds?: number | null;
 }
 
 export interface PredictionPlayer {
