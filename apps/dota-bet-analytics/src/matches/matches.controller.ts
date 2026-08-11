@@ -9,7 +9,7 @@ export class MatchesController {
 
   @Get('live')
   async live() {
-    const matches = await this.liveMatches.findLive();
+    const matches = await this.liveMatches.findLiveWithProgress();
     return { count: matches.length, matches };
   }
 

@@ -287,3 +287,33 @@ filtered view rather than the raw one.
 A hidden match is not deleted or unreachable. It still has its own page, still
 shows in the tournament counts when the box is unticked, and is marked `thin
 records` in the list so the reason is visible rather than implied.
+
+### A live match says when it can be scored
+
+Three states on the matches screen, and only one is a countdown:
+
+| state              | meaning                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `scoreboard in 8m` | Nothing is visible yet. The wait is the broadcast delay, and it is accurate to about one poll.                    |
+| `awaiting draft`   | The scoreboard has arrived but no heroes are picked. Not predictable — five picks take as long as the teams take. |
+| `predicted`        | Scored. The match page has it.                                                                                    |
+
+The middle state is deliberately not a number. Estimating it would put a
+figure on the screen that nothing supports, and a countdown that keeps
+resetting is worse than a word that is true.
+
+The page refreshes every ten seconds, so the countdown moves on its own.
+
+### The draft is shown on its own, not just folded into the score
+
+`heroMatchup` is 0.40 of a team's score but was invisible — the roster showed
+each player's win rate and games, and the one number about the _draft_ was
+missing.
+
+Each side now shows it twice over: as a signed figure against an even draft
+(`+1.65`) with the raw value beside it, and as one line in the prediction
+header naming the side whose heroes counter the other's.
+
+Signed, because the raw values sit between about 45 and 55 and the eye reads
+`51.65 vs 48.35` as two similar numbers rather than as a gap. The two always
+add up to 100 — one side's advantage is the other's disadvantage.

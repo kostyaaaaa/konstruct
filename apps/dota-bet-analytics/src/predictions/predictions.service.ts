@@ -53,6 +53,19 @@ export class PredictionsService {
     return (await this.model.countDocuments({ matchId })) > 0;
   }
 
+  /** Which of these matches already have a prediction. One query, not N. */
+  async existingFor(matchIds: number[]): Promise<Set<number>> {
+    if (matchIds.length === 0) {
+      return new Set();
+    }
+    const rows = await this.model
+      .find({ matchId: { $in: matchIds } })
+      .select('matchId -_id')
+      .lean<{ matchId: number }[]>()
+      .exec();
+    return new Set(rows.map((row) => row.matchId));
+  }
+
   /**
    * Scores a match and stores the whole payload.
    *

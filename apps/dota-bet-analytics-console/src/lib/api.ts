@@ -69,6 +69,10 @@ export interface LiveMatch {
   status: 'live' | 'ended';
   startedAt: string;
   lastSeenAt: string;
+  /** Live matches only: whether this has been scored yet. */
+  hasPrediction?: boolean;
+  /** Live matches only: seconds until the delayed scoreboard is due. */
+  scoreboardInSeconds?: number | null;
 }
 
 export interface PredictionPlayer {
@@ -95,6 +99,9 @@ export interface Prediction {
   direScore: number;
   favoured: 'radiant' | 'dire' | null;
   margin: number;
+  /** How this side's five heroes fare against the other five, 0-100. The two sum to 100. */
+  radiantMatchup?: number;
+  direMatchup?: number;
   leagueName?: string;
   leagueTier?: string;
   marginPercent: number;

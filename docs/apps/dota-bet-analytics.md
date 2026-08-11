@@ -602,6 +602,23 @@ is better used as a signal than as an exclusion.
 it existed. It imports the rule from the build rather than copying it, and it
 is safe to run twice.
 
+### `GET /matches/live` says how far each match is from a prediction
+
+Two extra fields on live rows: `hasPrediction`, and `scoreboardInSeconds`.
+
+**Only the second is a real countdown, and only because it was measured.**
+Valve serves the scoreboard on the broadcast's delayed timeline, so it appears
+`stream_delay_s` after the match id enters the feed. Checked across 261
+matches, that is accurate to about ten seconds — one poll — with 253 of them
+inside a minute.
+
+What follows is the draft, and how long five picks take is up to the teams. It
+is named rather than estimated: a match past its scoreboard time with no
+prediction is _awaiting draft_, not _late_.
+
+Computed per request rather than stored, so the number is right whenever it is
+read.
+
 ### A match ends after three missed polls, not one
 
 Discovery ends a live match only when it has been absent from **three

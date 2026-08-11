@@ -26,7 +26,7 @@ function ordinal(rank: number | null): string {
  * on the same two colours is what made "favoured in red, prediction correct"
  * read as a contradiction.
  */
-export function TeamRoster({ side, teamName, score, players, favoured }: TeamRosterProps) {
+export function TeamRoster({ side, teamName, score, matchup, players, favoured }: TeamRosterProps) {
   const accent = side === 'radiant' ? 'text-radiant' : 'text-dire';
 
   return (
@@ -46,12 +46,32 @@ export function TeamRoster({ side, teamName, score, players, favoured }: TeamRos
           )}
         </h3>
         <Hint
-          text="Team score: the five players' win rates on their chosen heroes added up and weighted 80%, plus 100 divided by each player's familiarity rank with their hero, weighted 20%. Higher is stronger. It only means anything next to the other team's score in this match."
+          text="Team score: a weighted sum of this side's five players — their win rates on the heroes they picked (0.50), how those five heroes fare against the other five (0.40), and how many games they have on them (0.10). Higher is stronger, and it only means anything next to the other team's score in this match."
           className={`mono text-lg ${favoured ? 'text-accent' : ''}`}
         >
           {score}
         </Hint>
       </header>
+
+      {matchup !== undefined && (
+        <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-line/60 pb-3">
+          <Hint
+            text="How these five heroes have historically fared against the other five, from every professional match since 2023. 50 is an even draft, and the two sides always add up to 100 — one side's advantage is the other's disadvantage. This is the draft on its own, ignoring who is playing it."
+            className="text-xs text-faint"
+          >
+            Draft
+          </Hint>
+          <span
+            className={`mono text-sm ${
+              matchup > 50 ? 'text-ok' : matchup < 50 ? 'text-bad' : 'text-muted'
+            }`}
+          >
+            {matchup > 50 ? '+' : ''}
+            {(matchup - 50).toFixed(2)}
+            <span className="ml-1.5 text-faint">({matchup.toFixed(2)})</span>
+          </span>
+        </div>
+      )}
 
       <ul className="space-y-2">
         {players.map((player) => (

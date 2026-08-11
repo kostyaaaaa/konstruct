@@ -109,6 +109,32 @@ export default async function MatchDetailPage({
                     <span className="mono">{formatDelay(prediction.streamDelaySeconds)}</span>
                   </div>
                 )}
+                {prediction.radiantMatchup !== undefined &&
+                  prediction.direMatchup !== undefined && (
+                    <div>
+                      <Hint
+                        text="Which side's five heroes counter the other's, from every professional match since 2023. This is the draft alone — it ignores who is playing, and it is 0.40 of each team's score."
+                        className="text-faint"
+                      >
+                        Draft
+                      </Hint>{' '}
+                      {prediction.radiantMatchup === prediction.direMatchup ? (
+                        <span className="text-muted">even</span>
+                      ) : (
+                        <span className="text-ink">
+                          {prediction.radiantMatchup > prediction.direMatchup
+                            ? (prediction.radiantTeamName ?? 'Radiant')
+                            : (prediction.direTeamName ?? 'Dire')}{' '}
+                          <span className="mono text-muted">
+                            +
+                            {Math.abs(prediction.radiantMatchup - prediction.direMatchup).toFixed(
+                              2,
+                            )}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 {!prediction.complete && (
                   <div className="text-warn">incomplete — some player stats were unavailable</div>
                 )}
@@ -126,6 +152,7 @@ export default async function MatchDetailPage({
                   side="radiant"
                   teamName={prediction.radiantTeamName}
                   score={prediction.radiantScore}
+                  matchup={prediction.radiantMatchup}
                   players={prediction.radiantPlayers}
                   favoured={prediction.favoured === 'radiant'}
                 />
@@ -133,6 +160,7 @@ export default async function MatchDetailPage({
                   side="dire"
                   teamName={prediction.direTeamName}
                   score={prediction.direScore}
+                  matchup={prediction.direMatchup}
                   players={prediction.direPlayers}
                   favoured={prediction.favoured === 'dire'}
                 />
