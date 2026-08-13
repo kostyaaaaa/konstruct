@@ -34,6 +34,16 @@ export interface FetchJsonOptions {
   timeoutMs?: number;
   /** Extra attempts after the first. Default 3. */
   retries?: number;
+  /**
+   * Statuses to treat as transient on top of the usual ones.
+   *
+   * 429 and 5xx are always retried; a 4xx never is, because a malformed
+   * request fails identically every time. Some APIs break that rule — the
+   * OpenDota explorer answers 400 when it is busy as well as when the SQL is
+   * wrong — so the caller can widen it for that endpoint alone rather than
+   * making every 4xx retryable everywhere.
+   */
+  retryStatuses?: readonly number[];
   observer?: FetchObserver;
   /** Default `GET`. */
   method?: string;
@@ -64,7 +74,15 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * carry whatever idempotency key its API offers.
  */
 export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}): Promise<T> {
-  const { timeoutMs = 10_000, retries = 3, observer, method = 'GET', body, headers } = options;
+  const {
+    timeoutMs = 10_000,
+    retries = 3,
+    observer,
+    method = 'GET',
+    body,
+    headers,
+    retryStatuses = [],
+  } = options;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -87,7 +105,11 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
         signal: AbortSignal.timeout(timeoutMs),
       });
 
-      if (response.status === 429 || response.status >= 500) {
+      if (
+        response.status === 429 ||
+        response.status >= 500 ||
+        retryStatuses.includes(response.status)
+      ) {
         lastError = new Error(`HTTP ${response.status} from ${redactUrl(url)}`);
         continue;
       }

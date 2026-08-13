@@ -70,9 +70,19 @@ export class OpenDotaService {
     const body = await fetchJson<{ rows?: T[]; err?: unknown }>(url, {
       observer: this.observer,
       timeoutMs: 180_000,
-      /* A malformed query fails the same way every time; retrying it only
-         spends someone else's database. */
-      retries: 1,
+      retries: 3,
+      /**
+       * **The explorer answers 400 when it is busy, not only when the SQL is
+       * wrong.** On 2026-08-13 the daily matchup rebuild died on its first
+       * window with a 400; the identical query returned 15,023 rows minutes
+       * later. Without this the job simply lost a day — the cron is daily, and
+       * nothing retries in between.
+       *
+       * A genuinely malformed query now costs four attempts instead of two.
+       * That is the price of not confusing "busy" with "broken", and the
+       * queries here are fixed strings rather than anything user-supplied.
+       */
+      retryStatuses: [400],
     });
 
     if (body.err) {
