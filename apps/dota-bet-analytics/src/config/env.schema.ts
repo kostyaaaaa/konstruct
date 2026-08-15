@@ -28,8 +28,13 @@ export const envSchema = z.object({
      tried first and proved unreliable: OpenDota called four of eight
      Dotabuff-professional tournaments `excluded`. Prize money comes from Valve
      and cannot be applied inconsistently — on one evening's feed, every league
-     with money was worth having and all twelve without were pickup games. */
-  MIN_PRIZE_POOL: z.coerce.number().int().min(0).default(10_000),
+     with money was worth having and all twelve without were pickup games.
+
+     The number is a dial, not a fact about Dota. At $10,000 it admitted the
+     $10k-$20k band, which a 26,174-match backtest scored at 55.1% while every
+     band above and below scored 58-65%. Raising it to $20,000 cuts the feed to
+     roughly 30% of its former size, which is the trade. */
+  MIN_PRIZE_POOL: z.coerce.number().int().min(0).default(20_000),
 
   /* The prediction report, posted to a Telegram channel.
 

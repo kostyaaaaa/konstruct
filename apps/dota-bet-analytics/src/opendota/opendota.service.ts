@@ -41,6 +41,20 @@ export interface OpenDotaProPlayer {
   team_name?: string;
 }
 
+/**
+ * How long the two player endpoints get before an attempt is abandoned.
+ *
+ * **Far above the 10s default, because they are genuinely that slow.** Measured
+ * against live accounts, `/players/{id}` and `/players/{id}/heroes` answer in
+ * anything from 320ms to 20s. At 10s they timed out 670 times in four days,
+ * and every timeout marks a player's stats missing for good — the model then
+ * scores that side on four players instead of five.
+ *
+ * Against 670 timeouts there were 2 rate limits, so waiting longer is the fix
+ * and asking less often is not.
+ */
+const PLAYER_TIMEOUT_MS = 30_000;
+
 @Injectable()
 export class OpenDotaService {
   constructor(
@@ -117,6 +131,7 @@ export class OpenDotaService {
   async playerProfile(accountId: number): Promise<PlayerProfile> {
     const player = await fetchJson<OpenDotaPlayer>(`${this.baseUrl}/players/${accountId}`, {
       observer: this.observer,
+      timeoutMs: PLAYER_TIMEOUT_MS,
     });
     return {
       accountId,
@@ -138,7 +153,7 @@ export class OpenDotaService {
   async playerHero(accountId: number, heroId: number): Promise<PlayerHeroRecord> {
     const rows = await fetchJson<OpenDotaPlayerHero[]>(
       `${this.baseUrl}/players/${accountId}/heroes`,
-      { observer: this.observer },
+      { observer: this.observer, timeoutMs: PLAYER_TIMEOUT_MS },
     );
 
     const index = rows.findIndex((row) => Number(row.hero_id) === heroId);

@@ -15,6 +15,21 @@ import { MODEL_VERSION, isSuspicious, pick, scoreSide, type PlayerHeroStats } fr
 /** OpenDota's free tier allows 60 requests a minute; ten players cost twenty. */
 const OPENDOTA_CONCURRENCY = 3;
 
+/**
+ * How long a prediction stays eligible to be redone, and how long between
+ * tries.
+ *
+ * A player's stats can fail to load — OpenDota times out — and the prediction
+ * is stored anyway, scored on whoever did load. Nothing used to revisit it, so
+ * one slow response left a match permanently judged on four players.
+ *
+ * Redoing it is only safe while the match is still running: the win rates come
+ * from a career total that includes this match once it finishes, so a late
+ * retry would score the draft using its own result.
+ */
+const RETRY_WINDOW_MS = 10 * 60 * 1000;
+const RETRY_EVERY_MS = 60 * 1000;
+
 /** One tournament, with how the model has done in it so far. */
 export interface PredictionLeague {
   leagueId: number;
@@ -51,6 +66,55 @@ export class PredictionsService {
 
   async existsFor(matchId: number): Promise<boolean> {
     return (await this.model.countDocuments({ matchId })) > 0;
+  }
+
+  /**
+   * Whether this match already has a prediction worth keeping.
+   *
+   * False means "score it again". That happens only for a prediction that is
+   * incomplete *because a fetch failed* — an anonymous profile is missing for
+   * a reason no retry can fix, and returning false for those would re-score
+   * the same match every ten seconds for the length of the game.
+   */
+  async hasUsablePrediction(matchId: number): Promise<boolean> {
+    const row = await this.model
+      .findOne({ matchId })
+      .select(
+        'complete createdAt updatedAt radiantPlayers.missing radiantPlayers.accountId direPlayers.missing direPlayers.accountId',
+      )
+      .lean<{
+        complete: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        radiantPlayers: { missing: boolean; accountId: number }[];
+        direPlayers: { missing: boolean; accountId: number }[];
+      }>()
+      .exec();
+
+    if (!row) {
+      return false;
+    }
+    if (row.complete) {
+      return true;
+    }
+
+    /* `accountId === 0` is an anonymous profile: real, and not a failure. */
+    const fixable = [...row.radiantPlayers, ...row.direPlayers].some(
+      (player) => player.missing && player.accountId !== 0,
+    );
+    if (!fixable) {
+      return true;
+    }
+
+    const now = Date.now();
+    const tooOld = now - new Date(row.createdAt).getTime() > RETRY_WINDOW_MS;
+    const tooSoon = now - new Date(row.updatedAt).getTime() < RETRY_EVERY_MS;
+    return tooOld || tooSoon;
+  }
+
+  /** Records that the Telegram report for this match has gone out. */
+  async markReported(matchId: number): Promise<void> {
+    await this.model.updateOne({ matchId }, { $set: { reportedAt: new Date() } }).exec();
   }
 
   /** Which of these matches already have a prediction. One query, not N. */

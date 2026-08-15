@@ -122,7 +122,14 @@ export class DiscoveryService {
      * into an unhandled rejection.
      */
     for (const prediction of toReport) {
-      await this.report.send(prediction);
+      /* A redone prediction comes back through here; the channel should not
+         get the same match twice. */
+      if (prediction.reportedAt) {
+        continue;
+      }
+      if (await this.report.send(prediction)) {
+        await this.predictions.markReported(prediction.matchId);
+      }
     }
   }
 
@@ -268,7 +275,10 @@ export class DiscoveryService {
       }
 
       try {
-        if (await this.predictions.existsFor(match.matchId)) {
+        /* Not `existsFor`: an incomplete prediction is redone while the match
+           is still live, so one slow OpenDota response no longer costs a side
+           a player for good. */
+        if (await this.predictions.hasUsablePrediction(match.matchId)) {
           continue;
         }
         /* The tournament's name, not just its id. Looked up once per new

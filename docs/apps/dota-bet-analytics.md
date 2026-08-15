@@ -124,7 +124,7 @@ posting reports about them to the channel.
 | `DB_NAME`            | `dota-bet-analytics` in dev, `dota-bet-analytics-prod` in prod |
 | `STEAM_API_KEY`      | Steam Web API key, server-side only                            |
 | `OPENDOTA_API_URL`   | Defaults to the public API; no key                             |
-| `MIN_PRIZE_POOL`     | Smallest prize pool worth tracking. Defaults to `10000`        |
+| `MIN_PRIZE_POOL`     | Smallest prize pool worth tracking. Defaults to `20000`        |
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather                                      |
 | `TELEGRAM_CHAT_ID`   | Channel id, or `@channelusername`                              |
 | `CONSOLE_URL`        | Optional. Where the report's "View match" link points          |
@@ -333,7 +333,18 @@ trustworthy would mean never seeing whether it is working.
 ### Which tournaments are tracked: prize money, not tier
 
 Discovery keeps a league when Valve reports a prize pool of at least
-`MIN_PRIZE_POOL`, default $10,000.
+`MIN_PRIZE_POOL`, default $20,000.
+
+**The number moved from $10,000 once there was evidence.** A backtest over
+26,174 held-out matches scored the $10,000-$20,000 band at 55.1%, while every
+band above and below it scored 58-65% — and that band was about three quarters
+of everything tracked. Raising the floor keeps roughly 30% of the feed.
+
+Production's own record disagreed at the time the change was made: the leagues
+that survive a $20,000 floor were running at 45% against 55% for the ones it
+drops. That was 62 settled predictions against 26,174, and not significant
+(p = 0.17), so the larger sample decided it. Worth revisiting once enough
+matches have settled under the new floor to test it directly.
 
 **A tier label was tried first and did not work.** OpenDota classifies leagues
 as premium, professional, excluded or amateur, and the label is reliable at the
@@ -569,6 +580,28 @@ back instead of printing the number twice.
 
 `scripts/backfill-league-names.mjs` fills the field on rows written before
 discovery set it, copying from the `leagues` collection. Safe to run twice.
+
+### An incomplete prediction is redone while the match is still live
+
+A player's stats can fail to load, and the prediction is stored anyway, scored
+on whoever did load. Nothing used to revisit it, so one slow OpenDota response
+left a match judged on four players for good — 47 such failures on a single
+day, all of them timeouts.
+
+Discovery now re-scores a prediction it finds incomplete, at most once a minute
+and only for ten minutes after it was made.
+
+**The ten minutes is not politeness, it is correctness.** Win rates come from a
+career total that will include this very match once it finishes, so re-scoring
+a draft after the game has ended would read the answer off the back of the
+paper.
+
+Two things are deliberately never retried: an anonymous profile, which is real
+data rather than a failure, and a prediction whose report has already gone out
+is never posted to Telegram twice — `reportedAt` records that.
+
+The underlying cause is fixed too: those endpoints answer in anything from
+320ms to 20 seconds and were being given 10. They now get 30.
 
 ### A prediction can be flagged as built on thin records
 

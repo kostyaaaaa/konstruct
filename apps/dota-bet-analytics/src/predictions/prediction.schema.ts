@@ -159,6 +159,16 @@ export class Prediction {
   @Prop({ default: false, index: true })
   suspicious!: boolean;
 
+  /**
+   * When the Telegram report went out, if it did.
+   *
+   * A prediction can be written more than once — an incomplete one is redone
+   * while the match is still live — and without this each rewrite would post
+   * the same match to the channel again.
+   */
+  @Prop()
+  reportedAt?: Date;
+
   /** Filled in after the match, from OpenDota. Empty until then. */
   @Prop({ type: String, default: null, index: true })
   winner!: string | null;
