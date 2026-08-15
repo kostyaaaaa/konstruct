@@ -169,6 +169,17 @@ export class Prediction {
   @Prop()
   reportedAt?: Date;
 
+  /**
+   * When missing player stats were re-fetched after the fact, if they were.
+   *
+   * Set only by `scripts/repair-incomplete.mjs`. The win rates behind a
+   * repaired row come from a career total that already includes this match, so
+   * they lean very slightly toward whoever won — enough to keep these rows
+   * identifiable, not enough to leave a prediction scored on four players.
+   */
+  @Prop()
+  repairedAt?: Date;
+
   /** Filled in after the match, from OpenDota. Empty until then. */
   @Prop({ type: String, default: null, index: true })
   winner!: string | null;
